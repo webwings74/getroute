@@ -287,7 +287,26 @@
         }
     }
 
-    const colors = ['navy'];
+    // Verwerk de ?color= parameter
+    const colorParam = urlParams.get("color");
+    let colors = ['navy']; // Standaard kleuren kan een array zijn per segment.
+
+    if (colorParam) {
+        try {
+            const parsedColors = JSON.parse(colorParam);
+            if (Array.isArray(parsedColors) && parsedColors.every(color => typeof color === 'string')) {
+                colors = parsedColors;
+            } else {
+                console.warn("Ongeldige kleurparameter opgegeven. De standaardkleuren worden gebruikt.");
+            }
+        } catch (error) {
+            console.warn("Fout bij het verwerken van de kleurparameter. De standaardkleuren worden gebruikt.");
+        }
+    }
+
+    // Standaard kleuren
+    // const colors = ['navy', 'orange']; // Standaard kleuren per segment
+
     let totalDistance = 0;
     let totalDuration = 0;
     let bounds = L.latLngBounds(); // Om de volledige route te berekenen
