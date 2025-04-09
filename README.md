@@ -4,7 +4,7 @@ Dit project is een webapplicatie waarmee routes en locaties op een interactieve 
 
 ## Bestanden in dit project
 
-- **`config.js`**: Bevat API-sleutels voor externe services zoals Thunderforest, Tracestrack en OpenRouteService. Deze moet je zelf aanmaken en invullen.
+- **`example-config.js`**: Voorbeeld van de configuratie, je moet dit bestand kopieren naar `config.js` en dan al je eigen API keys invullen.
 - **`getroute.php`**: De hoofdtoepassing die de kaart weergeeft en routes en locaties verwerkt.
 
 ## Functionaliteiten
