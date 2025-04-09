@@ -1,0 +1,14 @@
+# Node.js dependencies (if applicable)
+node_modules/
+
+# Ignore config.js to prevent API keys from being uploaded
+config.js
+
+# Ignore system files
+.DS_Store
+
+# Ignore log files
+*.log
+
+# Ignore environment files
+.env
