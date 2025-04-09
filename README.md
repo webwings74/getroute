@@ -96,6 +96,7 @@ Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-para
   - `point`: De locatie (adres of coördinaten).
   - `text`: Optionele tekst die wordt weergegeven in een popup.
   - `icon`: Optionele URL van een icoon dat wordt gebruikt voor de marker.
+  - `color`: Optionele array van kleur(en) van de route, `color=["orange","navy"]`  
 
   Voorbeeld:
   ```json
