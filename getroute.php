@@ -365,15 +365,17 @@
 
     function plotRoute(start, end, color, section, profile, isFirstSegment, isLastSegment) {
         return new Promise((resolve, reject) => {
+            // Startmarker: gebruik start.icon als deze is opgegeven, anders startIconUrl 
             const startIcon = L.icon({
-                iconUrl: isFirstSegment ? startIconUrl : (start.icon || defaultIconUrl),
+                iconUrl: start.icon ? start.icon : (isFirstSegment ? startIconUrl : defaultIconUrl),
                 iconSize: [iconWidth, iconHeight],
                 iconAnchor: [iconWidth / 2, iconHeight],
                 popupAnchor: [0, popupOffset]
             });
 
+            // Eindmarker: gebruik end.icon als deze is opgegeven, anders endIconUrl of defaultIconUrl
             const endIcon = L.icon({
-                iconUrl: isLastSegment ? endIconUrl : (end.icon || defaultIconUrl),
+                iconUrl: end.icon || (isLastSegment ? endIconUrl : defaultIconUrl),
                 iconSize: [iconWidth, iconHeight],
                 iconAnchor: [iconWidth / 2, iconHeight],
                 popupAnchor: [0, popupOffset]
@@ -402,9 +404,10 @@
                     totalDistance += distance;
                     totalDuration += duration;
 
+                    // Voeg de startmarker toe als het het eerste segment is
                     if (isFirstSegment) {
                         const startMarker = L.marker([start.lat, start.lon], { icon: startIcon }).addTo(map);
-                        startMarker.bindPopup(start.text || `Tussenpunt: ${start.displayName}`);
+                        startMarker.bindPopup(start.text || `Startpunt: ${start.displayName}`);
                         startMarker.on('mouseover', function () {
                             this.openPopup();
                         });
@@ -413,6 +416,7 @@
                         });
                     }
 
+                    // Voeg de eindmarker toe
                     let endPopupText = end.text || `Tussenpunt: ${end.displayName}`;
                     if (section) {
                         const distanceKm = (distance / 1000).toFixed(2); // Afstand in kilometers
