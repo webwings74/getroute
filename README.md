@@ -49,7 +49,7 @@ Als er geen routes of locaties zijn opgegeven, probeert de applicatie de huidige
 
 ### 6. **Beschikbare Iconen**
 
-In de folder `mapicons` zijn verschillende iconen beschikbaar die je kunt gebruiken voor markers op de kaart. Deze iconen kunnen worden opgegeven via de `icon`-parameter in de JSON-array van een route- of locatiepunt. Je kunt met de `.pxd` bestanden eigen iconen maken, met bijvoorbeeld Pixelmator Pro, GIMP of Photoshop.
+In de folder `mapicons` zijn een aantal iconen beschikbaar die je kunt gebruiken voor markers op de kaart. Deze iconen kunnen worden opgegeven via de `icon`-parameter in de JSON-array van een route- of locatiepunt. Je kunt met de `.pxd` bestanden eigen iconen maken, met bijvoorbeeld Pixelmator Pro, GIMP of Photoshop.
 
 | Bestandsnaam         | Voorbeeld                              |
 |-----------------------|----------------------------------------|
@@ -64,9 +64,7 @@ In de folder `mapicons` zijn verschillende iconen beschikbaar die je kunt gebrui
 | `workshop.png`        | ![workshop](mapicons/workshop.png)    |
 | `world.png`           | ![world](mapicons/world.png)          |
 
-Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-parameter, bijvoorbeeld: `mapicons/start.png`.
-
-Als je eigen iconen wilt toevoegen, plaats deze dan in de `mapicons`-folder en geef de bestandsnaam op in de `icon`-parameter.
+Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-parameter, bijvoorbeeld: `mapicons/start.png`. Als je eigen iconen wilt toevoegen, plaats deze dan in de `mapicons`-folder en geef de bestandsnaam op in de `icon`-parameter.
 
 ## Hoe te gebruiken
 
