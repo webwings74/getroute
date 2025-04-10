@@ -356,7 +356,8 @@
 
     // Als er geen kleuren zijn opgegeven, gebruik een standaard kleurenarray
     if (colorParams.length === 0) {
-        colorParams.push(['navy', 'orange', 'green', 'purple']); // Standaard kleuren
+        // colorParams.push(['navy', 'orange', 'green', 'purple']);
+        colorParams.push(['navy']); // Standaard kleur Navy
     }
 
     // Functie om een kleur te krijgen voor een specifiek segment
