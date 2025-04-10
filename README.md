@@ -47,6 +47,7 @@ Als er geen routes of locaties zijn opgegeven, probeert de applicatie de huidige
 ### 5. **Totale afstand en tijd**
 - De totale afstand en reistijd van de route worden berekend en weergegeven in een overlay (`#duration-container`) op de kaart.
 - De aankomsttijd wordt ook berekend op basis van de huidige tijd en de totale reistijd.
+- In de `multiroute.php` is *geen* overlay container, maar staan de totale rijtijd en -afstand vermeld bij de popup over het startpunt van elke route.
 
 ### 6. **Beschikbare Iconen**
 
@@ -90,6 +91,8 @@ Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-para
    ```
    http://localhost/getroute.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
    ```
+5. **Bij gebruik van multiroute.php**
+   Open multiroute.php` in een browser. Je kunt nu meerdere ?route[...]&route[...]... toevoegen, om meerdere routes weer te geven op de kaart.
 
 ### Beschikbare URL-parameters
 
