@@ -225,9 +225,9 @@
         }
 
         // Verwerk routes
-        routes.forEach(route => {
+        routes.forEach((route, index) => {
             if (route.length > 0) {
-                promises.push(plotRoutes(route, section, profile));
+                promises.push(plotRoutes(route, section, profile, index)); // Geef de route-index door
             }
         });
 
@@ -337,31 +337,39 @@
         }
     }
 
-    // Verwerk de ?color= parameter
-    const colorParam = urlParams.get("color");
-    let colors = ['navy']; // Standaard kleuren kan een array zijn per segment.
-
-    if (colorParam) {
-        try {
-            const parsedColors = JSON.parse(colorParam);
-            if (Array.isArray(parsedColors) && parsedColors.every(color => typeof color === 'string')) {
-                colors = parsedColors;
-            } else {
-                console.warn("Ongeldige kleurparameter opgegeven. De standaardkleuren worden gebruikt.");
+    // Verwerk de ?color= parameters (meerdere arrays mogelijk)
+    const colorParams = [];
+    urlParams.forEach((value, key) => {
+        if (key === "color") {
+            try {
+                const parsedColors = JSON.parse(value);
+                if (Array.isArray(parsedColors) && parsedColors.every(color => typeof color === 'string')) {
+                    colorParams.push(parsedColors);
+                } else {
+                    console.warn("Ongeldige kleurparameter opgegeven. De standaardkleuren worden gebruikt.");
+                }
+            } catch (error) {
+                console.warn("Fout bij het verwerken van de kleurparameter. De standaardkleuren worden gebruikt.");
             }
-        } catch (error) {
-            console.warn("Fout bij het verwerken van de kleurparameter. De standaardkleuren worden gebruikt.");
         }
+    });
+
+    // Als er geen kleuren zijn opgegeven, gebruik een standaard kleurenarray
+    if (colorParams.length === 0) {
+        colorParams.push(['navy', 'orange', 'green', 'purple']); // Standaard kleuren
     }
 
-    // Standaard kleuren
-    // const colors = ['navy', 'orange']; // Standaard kleuren per segment
+    // Functie om een kleur te krijgen voor een specifiek segment
+    function getSegmentColor(routeIndex, segmentIndex) {
+        const colors = colorParams[routeIndex % colorParams.length]; // Cyclisch gebruik van kleurenarrays
+        return colors[segmentIndex % colors.length]; // Cyclisch gebruik van kleuren binnen een array
+    }
 
     let totalDistance = 0;
     let totalDuration = 0;
     let bounds = L.latLngBounds(); // Om de volledige route te berekenen
 
-    function plotRoutes(route, section, profile) {
+    function plotRoutes(route, section, profile, routeIndex) {
         const promises = route.map(point => {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(point.point)}`;
             return fetch(url).then(response => {
@@ -395,7 +403,7 @@
                         for (let i = 0; i < coordinates.length - 1; i++) {
                             const start = coordinates[i];
                             const end = coordinates[i + 1];
-                            const color = colors[i % colors.length];
+                            const color = getSegmentColor(routeIndex, i); // Haal de kleur op voor dit segment
 
                             routePromises.push(plotRoute(start, end, color, section, profile, i === 0, i === coordinates.length - 2, totalDuration, totalDistance));
                         }
