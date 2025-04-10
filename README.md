@@ -6,6 +6,7 @@ Dit project is een webapplicatie waarmee routes en locaties op een interactieve 
 
 - **`example-config.js`**: Voorbeeld van de configuratie, je moet dit bestand kopieren naar `config.js` en dan al je eigen API keys invullen.
 - **`getroute.php`**: De hoofdtoepassing die de kaart weergeeft en routes en locaties verwerkt.
+- **`multiroute.php`**: Een script dat meerdere routes tegelijk kan weergeven.
 
 ## Functionaliteiten
 
