@@ -99,8 +99,7 @@ Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-para
 - **`route`**: Een JSON-array met routepunten. Elk punt bevat:
   - `point`: De locatie (adres of coördinaten).
   - `text`: Optionele tekst die wordt weergegeven in een popup.
-  - `icon`: Optionele URL van een icoon dat wordt gebruikt voor de marker.
-  - `color`: Optionele array van kleur(en) van de route, `color=["orange","navy"]`  
+  - `icon`: Optionele URL van een icoon dat wordt gebruikt voor de marker.  
 
   Voorbeeld:
   ```json
@@ -129,6 +128,9 @@ Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-para
   - `cycling-regular`: Fietsen, of specifieker `cycling-road` voor de weg, `cycling-mountain` voor mountainbiken, `cycling-electric` voor e-bikes.
   - `foot-hiking`: Wandelen, of specifieker `foot-walking` voor wandelen met een specifieke focus op voetpaden, `foot-mountain`: Bergwandelen.
   - `wheelchair`: Toegankelijkheid voor rolstoelen.
+
+- **`color`**: De kleur van de route op de kaart. Dit is een array, met minimaal 1 kleur en anders per segment een wisselende kleur.
+  - `color`: Optionele array van kleur(en) van de route, `color=["orange","navy"]`
 
 - **`zoom`**: De zoomfactor van de kaart, als je deze parameter opgeeft, wordt de zoomfactor geforceerd naar de opgegeven waarde. Standaard is `13`. Mogelijke waarden zijn tussen `1` en `20`. De zoomfactor kan ook worden ingesteld via de kaart zelf.
 
