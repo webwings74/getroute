@@ -3,7 +3,7 @@ import webbrowser
 from urllib.parse import urlencode
 
 def main():
-    base_url = "http://localhost/multiroute.php"  # Pas dit aan naar de juiste URL van multiroute.php
+    base_url = "https://code.webwings.nl/multiroute.php"  # Pas dit aan naar de juiste URL van multiroute.php
     locations = []
 
     print("Voer adressen in. Laat leeg en druk op Enter om te stoppen.")
@@ -29,7 +29,7 @@ def main():
 
     # Genereer de URL
     query_params = {
-        "location": json.dumps(locations)
+        "route": json.dumps(locations)
     }
     full_url = f"{base_url}?{urlencode(query_params)}"
 
