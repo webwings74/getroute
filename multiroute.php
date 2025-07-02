@@ -31,7 +31,7 @@
 <body>
 
 <!-- Totale afstand en tijd container -->
-<div id="duration-container"></div>
+<!-- div id="duration-container"></div>
 
 <!-- Kaart -->
 <div id="map"></div>
@@ -39,7 +39,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="config.js"></script>
 <script>
-    // Gebruik de geladen API-sleutels
+    // API-sleutels
     const thunderforestApiKey = config.thunderforestApiKey;
     const tracestrackApiKey = config.tracestrackApiKey;
     const openRouteServiceApiKey = config.openRouteServiceApiKey;

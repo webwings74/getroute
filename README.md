@@ -63,6 +63,8 @@ In de folder `mapicons` zijn een aantal iconen beschikbaar die je kunt gebruiken
 | `start.png`           | ![start](mapicons/start.png)          |
 | `stop.png`            | ![stop](mapicons/stop.png)            |
 | `truckcamper.png`     | ![truckcamper](mapicons/truckcamper.png) |
+| `caravan.png`        | ![caravan](mapicons/caravan.png)      |
+| `home-2.png`            | ![home](mapicons/home-2.png)            |
 | `workshop.png`        | ![workshop](mapicons/workshop.png)    |
 | `world.png`           | ![world](mapicons/world.png)          |
 
