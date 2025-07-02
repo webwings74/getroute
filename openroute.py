@@ -3,7 +3,8 @@ import webbrowser
 from urllib.parse import urlencode
 
 def main():
-    base_url = "https://code.webwings.nl/multiroute.php"  # Pas dit aan naar de juiste URL van multiroute.php
+    mydomain = "mydomain.url"                                # Geef hier je domainnaam op.
+    base_url = "https://" + mydomain + "/multiroute.php"     # Volledige URL naar multiroute.php
     locations = []
 
     print("Voer adressen in. Laat leeg en druk op Enter om te stoppen.")
