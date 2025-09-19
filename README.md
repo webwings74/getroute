@@ -7,6 +7,7 @@ Dit project is een webapplicatie waarmee routes en locaties op een interactieve 
 - **`example-config.js`**: Voorbeeld van de configuratie, je moet dit bestand kopieren naar `config.js` en dan al je eigen API keys invullen.
 - **`getroute.php`**: De hoofdtoepassing die de kaart weergeeft en routes en locaties verwerkt.
 - **`multiroute.php`**: Een script dat meerdere routes tegelijk kan weergeven.
+- **`openroute.py`**: Python-script om een route-URL makkelijker te genereren.
 
 ## Functionaliteiten
 
@@ -69,6 +70,14 @@ In de folder `mapicons` zijn een aantal iconen beschikbaar die je kunt gebruiken
 | `world.png`           | ![world](mapicons/world.png)          |
 
 Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-parameter, bijvoorbeeld: `mapicons/start.png`. Als je eigen iconen wilt toevoegen, plaats deze dan in de `mapicons`-folder en geef de bestandsnaam op in de `icon`-parameter.
+
+### 7. **Kleuren**
+Het is mogelijk om de route in andere kleuren, danwel segmenten in opvolgende kleuren te presenteren met de `color` parameter. Het kan met een enkele kleur, of een array van kleuren.
+
+Voorbeeld van een `color`-parameter, bij meerdere kleuren worden ze opeenvolgend geroteerd:
+```json
+ ['navy', 'orange', 'green', 'purple']
+```
 
 ## Hoe te gebruiken
 
