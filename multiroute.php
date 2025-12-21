@@ -142,6 +142,9 @@
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+        // Reset de notFoundLocations array bij elke laadactie
+        notFoundLocations = [];
+        
         const routes = getRoutesFromQuery(); // Haal alle routes op
         const locations = getLocationsFromQuery();
         const urlParams = new URLSearchParams(window.location.search);
@@ -162,7 +165,7 @@
 
         // Controleer het aantal routes en verwijder de container indien nodig
         const durationContainer = document.getElementById("duration-container");
-        if (routes.length > 1) {
+        if (durationContainer && routes.length > 1) {
             durationContainer.remove(); // Verwijder de container volledig uit de DOM
         }
 
@@ -212,6 +215,7 @@
                                     bounds.extend([coord.lat, coord.lon]);
                                 } else {
                                     console.error("Locatie niet gevonden: " + locations[index].point);
+                                    notFoundLocations.push(locations[index].point);
                                 }
                             });
                             resolve();
@@ -233,6 +237,12 @@
 
         // Wacht tot alle locaties en routes zijn verwerkt
         Promise.all(promises).then(() => {
+            // Toon popup met niet-gevonden locaties indien van toepassing
+            if (notFoundLocations.length > 0) {
+                const locationList = notFoundLocations.map(loc => `• ${loc}`).join('\n');
+                alert(`De volgende locatie(s) konden niet worden gevonden:\n\n${locationList}`);
+            }
+            
             if (bounds.isValid()) {
                 if (requestedZoom !== null) {
                     // Forceer de zoom naar het opgegeven niveau
@@ -369,6 +379,7 @@
     let totalDistance = 0;
     let totalDuration = 0;
     let bounds = L.latLngBounds(); // Om de volledige route te berekenen
+    let notFoundLocations = []; // Globale array om niet-gevonden locaties bij te houden
 
     function plotRoutes(route, section, profile, routeIndex) {
         const promises = route.map(point => {
@@ -381,21 +392,31 @@
             });
         });
 
-        Promise.all(promises)
+        return Promise.all(promises)
             .then(locations => {
-                const coordinates = locations.map((location, index) => {
+                const coordinates = [];
+                const localNotFound = [];
+                
+                locations.forEach((location, index) => {
                     if (location.length > 0) {
-                        return {
+                        coordinates.push({
                             lat: parseFloat(location[0].lat),
                             lon: parseFloat(location[0].lon),
                             displayName: location[0].display_name,
                             text: route[index].text,
                             icon: route[index].icon
-                        };
+                        });
                     } else {
-                        throw new Error("Locatie niet gevonden: " + route[index].point);
+                        console.error("Locatie niet gevonden: " + route[index].point);
+                        localNotFound.push(route[index].point);
+                        notFoundLocations.push(route[index].point);
                     }
                 });
+                
+                if (localNotFound.length > 0) {
+                    // Als er locaties niet gevonden zijn, gooi een error
+                    throw new Error("Sommige locaties niet gevonden: " + localNotFound.join(", "));
+                }
 
                 // Bereken totale afstand en tijd voor deze specifieke route
                 calculateTotalRouteData(coordinates, profile)
