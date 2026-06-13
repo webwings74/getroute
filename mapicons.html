@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Map Icon Reference Sheet — Webwings getroute project -->
+    <!-- (c) Webwings 2025 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Icons Reference — Webwings</title>
+    <style>
+        /* ── Reset & base ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: 11px;
+            background: #f4f5f7;
+            color: #2c3e50;
+        }
+
+        /* ── Page header ── */
+        header {
+            background: #1a2a3a;
+            color: #fff;
+            padding: 14px 20px 10px;
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+        header h1 {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: .03em;
+        }
+        header span {
+            font-size: 11px;
+            color: #8fa8c0;
+        }
+
+        /* ── Search bar ── */
+        #search-bar {
+            background: #243447;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        #search-bar label {
+            color: #8fa8c0;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+        #filter {
+            flex: 1;
+            max-width: 340px;
+            padding: 4px 8px;
+            border: 1px solid #3a5068;
+            border-radius: 4px;
+            background: #1a2a3a;
+            color: #e0eaf4;
+            font-size: 11px;
+            outline: none;
+        }
+        #filter:focus { border-color: #5b9bd5; }
+        #count {
+            margin-left: auto;
+            color: #8fa8c0;
+            font-size: 11px;
+        }
+
+        /* ── Grid wrapper ── */
+        #grid {
+            padding: 12px 16px;
+            /* 4-column grid — fits portrait A4/letter nicely */
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+
+        /* ── Each icon card ── */
+        .icon-card {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #fff;
+            border: 1px solid #e2e6ea;
+            border-radius: 5px;
+            padding: 5px 7px;
+            cursor: default;
+            transition: background .12s, border-color .12s;
+            overflow: hidden;
+        }
+        .icon-card:hover {
+            background: #eaf3fb;
+            border-color: #5b9bd5;
+        }
+        .icon-card img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            flex-shrink: 0;
+            /* checkerboard background so transparent PNGs are visible */
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 8px 8px;
+            background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+            border-radius: 2px;
+        }
+        .icon-card .name {
+            font-size: 10px;
+            color: #3a5068;
+            word-break: break-all;
+            line-height: 1.25;
+        }
+        .icon-card.hidden { display: none; }
+
+        /* ── Print styles ── */
+        @media print {
+            body { background: #fff; font-size: 9px; }
+            #search-bar { display: none; }
+            header { background: #1a2a3a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #grid { gap: 3px; padding: 8px; }
+            .icon-card { break-inside: avoid; border-color: #ccc; }
+            .icon-card:hover { background: #fff; border-color: #ccc; }
+        }
+
+        /* ── Responsive: 3 columns on narrow screens ── */
+        @media (max-width: 600px) {
+            #grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Map Icons Reference</h1>
+    <span>Webwings getroute — mapicons/</span>
+</header>
+
+<div id="search-bar">
+    <label for="filter">🔍 Filter:</label>
+    <input type="text" id="filter" placeholder="Type to filter icons…" autocomplete="off">
+    <span id="count"></span>
+</div>
+
+<div id="grid">
+    <!-- Icon cards are injected by JavaScript -->
+</div>
+
+<script>
+    /**
+     * Complete list of icon filenames from the mapicons/ directory.
+     * Generated automatically — do not edit manually.
+     * @type {string[]}
+     */
+    const ICONS = [
+    "24_7_365.png",
+    "2915103_1.png",
+    "2hand.png",
+    "360degrees.png",
+    "3d.png",
+    "aboriginal.png",
+    "above_ground.png",
+    "accesdenied.png",
+    "acupuncture.png",
+    "administration.png",
+    "administrativeboundary.png",
+    "aed-2.png",
+    "agritourism.png",
+    "air_fixwing.png",
+    "aircraftcarrier.png",
+    "aircraftsmall.png",
+    "airport.png",
+    "airport_apron.png",
+    "airport_runway.png",
+    "airport_terminal.png",
+    "airshow-2.png",
+    "algae.png",
+    "alien.png",
+    "alligator.png",
+    "ambulance.png",
+    "ambulanceboat.png",
+    "amphitheater-2.png",
+    "amphitheater.png",
+    "anchorpier.png",
+    "anemometer_mono.png",
+    "animal-shelter-export.png",
+    "anniversary.png",
+    "anon.png",
+    "ant-export.png",
+    "anthropo.png",
+    "apartment-3.png",
+    "apple.png",
+    "aquarium.png",
+    "arbol.png",
+    "arch.png",
+    "archery.png",
+    "army.png",
+    "art-museum-2.png",
+    "artgallery.png",
+    "assortment.png",
+    "atm-2.png",
+    "atv.png",
+    "audio.png",
+    "augenarzt.png",
+    "australianfootball.png",
+    "avalanche1.png",
+    "award.png",
+    "b_emblem.png",
+    "babymarkt_ausstattung.png",
+    "badminton-2.png",
+    "bags.png",
+    "balloons.png",
+    "bank_euro.png",
+    "bar.png",
+    "bar_coktail.png",
+    "bar_juice.png",
+    "barbecue.png",
+    "barber.png",
+    "barrier.png",
+    "baseball.png",
+    "basketball.png",
+    "bats.png",
+    "battlefield.png",
+    "battleship-3.png",
+    "beach_icon.png",
+    "beachvolleyball.png",
+    "bear.png",
+    "beautifulview.png",
+    "beautysalon.png",
+    "bed_breakfast1-2.png",
+    "bee.png",
+    "beergarden.png",
+    "begrenzungspfahl_poller.png",
+    "beratungsstelle.png",
+    "bicycle_parking.png",
+    "bicycle_shop.png",
+    "bigcity.png",
+    "bike_downhill.png",
+    "bike_rising.png",
+    "billiard-2.png",
+    "binoculars.png",
+    "birds-2.png",
+    "blackcock1.png",
+    "blast.png",
+    "boardercross.png",
+    "boat.png",
+    "boatcrane.png",
+    "bobsleigh.png",
+    "boccia.png",
+    "bock.png",
+    "bollie.png",
+    "bomb.png",
+    "bomber-2.png",
+    "borb.png",
+    "bouddha.png",
+    "boxing.png",
+    "bread.png",
+    "breastfeeding.png",
+    "brewery1.png",
+    "bridge_modern.png",
+    "bridge_old.png",
+    "bulldozer.png",
+    "bullfight.png",
+    "bumper-car.png",
+    "bunker-2-2.png",
+    "bunker.png",
+    "burger.png",
+    "bus.png",
+    "busstop.png",
+    "bustour.png",
+    "butcher-2.png",
+    "butterfly-2.png",
+    "cabin-2.png",
+    "cablecar.png",
+    "cafetaria.png",
+    "calendar-3.png",
+    "campfire.png",
+    "campingcar.png",
+    "candy.png",
+    "candy_cane.png",
+    "candy_floss.png",
+    "canyon-2.png",
+    "car.png",
+    "car_share.png",
+    "caraccident.png",
+    "caravan.png",
+    "carrental.png",
+    "carwash.png",
+    "casino-2.png",
+    "castle-2.png",
+    "cat-2.png",
+    "cathedral.png",
+    "catholicgrave.png",
+    "caution.png",
+    "cave-2.png",
+    "cemetary.png",
+    "channelchange.png",
+    "chapel-2.png",
+    "chart-2.png",
+    "cheese.png",
+    "chemistry-2.png",
+    "chicken-2.png",
+    "childmuseum01.png",
+    "chiropractor.png",
+    "christmasmarket.png",
+    "chronometer.png",
+    "church-2.png",
+    "cinema.png",
+    "circus.png",
+    "citysquare.png",
+    "citywalls.png",
+    "climbing-bentgate_carabiner.png",
+    "climbing.png",
+    "clock.png",
+    "closedroad.png",
+    "clothers_female.png",
+    "clothers_male.png",
+    "cloudy.png",
+    "cloudysunny.png",
+    "coffee.png",
+    "coins.png",
+    "coldfoodcheckpoint.png",
+    "coldstorage.png",
+    "comedyclub.png",
+    "comics.png",
+    "comment-map-icon.png",
+    "communitycentre.png",
+    "company.png",
+    "compost.png",
+    "computers.png",
+    "condominium.png",
+    "conference.png",
+    "congress.png",
+    "construction.png",
+    "constructioncrane.png",
+    "contract.png",
+    "conveniencestore.png",
+    "convent-2.png",
+    "conversation-map-icon.png",
+    "convertible.png",
+    "corn.png",
+    "corral.png",
+    "country.png",
+    "court.png",
+    "cow-export.png",
+    "cowabduction.png",
+    "craftstore.png",
+    "cramschool.png",
+    "crematorium.png",
+    "cricket.png",
+    "crimescene.png",
+    "cromlech.png",
+    "cropcircles.png",
+    "cross-2.png",
+    "crossingguard.png",
+    "crow.png",
+    "crow2.png",
+    "cruiseship.png",
+    "cserkesz_ikon.png",
+    "cup.png",
+    "curling-2.png",
+    "currencyexchange.png",
+    "curveleft.png",
+    "customs.png",
+    "cycling.png",
+    "cycling_feed.png",
+    "cycling_sprint.png",
+    "dachs.png",
+    "dalben.png",
+    "dam.png",
+    "dance_class.png",
+    "dancinghall.png",
+    "database.png",
+    "daycare.png",
+    "deepseafishing.png",
+    "deer.png",
+    "dentist.png",
+    "departmentstore.png",
+    "descent.png",
+    "desert-2.png",
+    "desert-3.png",
+    "dinopark.png",
+    "direction_down.png",
+    "direction_uturn.png",
+    "disability.png",
+    "discgolf.png",
+    "diving.png",
+    "dogs_leash.png",
+    "dolphins.png",
+    "downloadicon.png",
+    "dragon.png",
+    "dressingroom.png",
+    "drink.png",
+    "drinkingfountain.png",
+    "drinkingwater.png",
+    "drogerie.png",
+    "ducati-diavel.png",
+    "duck-export.png",
+    "e-bike-charging.png",
+    "e-bike-rental.png",
+    "earthquake-3.png",
+    "eggs.png",
+    "elephants.png",
+    "elevator.png",
+    "elevator_down.png",
+    "elevator_up.png",
+    "embassy.png",
+    "emergencyphone.png",
+    "emu.png",
+    "entrance.png",
+    "eu.png",
+    "exchequer.png",
+    "exit.png",
+    "expert.png",
+    "factory.png",
+    "fallingrocks.png",
+    "family.png",
+    "farm-2.png",
+    "farmstand.png",
+    "fastfood.png",
+    "female-2.png",
+    "ferriswheel.png",
+    "ferry.png",
+    "festival.png",
+    "fetalalcoholsyndrom.png",
+    "field.png",
+    "fillingstation.png",
+    "findajob.png",
+    "finish2.png",
+    "fire.png",
+    "fireexstinguisher.png",
+    "firemen.png",
+    "fireworks.png",
+    "firstaid.png",
+    "fishchips.png",
+    "fishing.png",
+    "fishingboat.png",
+    "fishingstore.png",
+    "fitness.png",
+    "fjord-2.png",
+    "flag-export.png",
+    "flagman.png",
+    "flood.png",
+    "folder-2.png",
+    "foodcan.png",
+    "fooddeliveryservice.png",
+    "foodtruck.png",
+    "footprint.png",
+    "ford-2.png",
+    "forest.png",
+    "forest2.png",
+    "fossils.png",
+    "foundry-2.png",
+    "fountain-3.png",
+    "fourbyfour.png",
+    "fox1.png",
+    "freqchg.png",
+    "frog-2.png",
+    "fruits.png",
+    "fsb_marker.png",
+    "ft.png",
+    "funicolar-22x22-1.png",
+    "garden.png",
+    "gas_cylinder1.png",
+    "gavel-auction-fw.png",
+    "gay-female.png",
+    "gay-male.png",
+    "gendarmery_france.png",
+    "geocaching-3.png",
+    "geothermal-site.png",
+    "geyser-2.png",
+    "ghosttown.png",
+    "gifts.png",
+    "giraffe.png",
+    "glacier-2.png",
+    "glasses.png",
+    "glasswater.png",
+    "glazer.png",
+    "gluten_free.png",
+    "golf-2.png",
+    "gondola-2.png",
+    "gourmet_0star.png",
+    "grass.png",
+    "grocery.png",
+    "group-2.png",
+    "gumball_machine.png",
+    "handball.png",
+    "hanggliding.png",
+    "harbor.png",
+    "hare1.png",
+    "hats.png",
+    "haybale.png",
+    "headstone-2.png",
+    "heating-and-aircon.png",
+    "helicopter.png",
+    "helipad.png",
+    "hifi.png",
+    "highhills.png",
+    "highschool.png",
+    "highway.png",
+    "hiking2.png",
+    "hill.png",
+    "hiretools.png",
+    "historical_museum.png",
+    "historicalquarter.png",
+    "hochsitz.png",
+    "hoergeraeteakustiker_22px.png",
+    "home-2.png",
+    "homecenter.png",
+    "honeycomb.png",
+    "hookah_final.png",
+    "horse-drawn_carriage.png",
+    "horseriding.png",
+    "hospital-building.png",
+    "hostel_0star.png",
+    "hotairbaloon.png",
+    "hotdog.png",
+    "hotel_0star.png",
+    "hotfoodcheckpoint.png",
+    "hotspring.png",
+    "house.png",
+    "hunting.png",
+    "hut.png",
+    "huttopia.png",
+    "iboga.png",
+    "ice_fishing.png",
+    "icecream.png",
+    "icehockey.png",
+    "iceskating.png",
+    "icon-sevilla.png",
+    "icy_road.png",
+    "indoor-arena.png",
+    "information.png",
+    "iobridge.png",
+    "ipcam24.png",
+    "jacuzzi.png",
+    "japanese-food.png",
+    "japanese-lantern.png",
+    "japanese-sake.png",
+    "japanese-sweet-2.png",
+    "japanese-temple.png",
+    "jazzclub.png",
+    "jeep.png",
+    "jetfighter.png",
+    "jewelry.png",
+    "jewishgrave.png",
+    "jewishquarter.png",
+    "jogging.png",
+    "judo.png",
+    "junction.png",
+    "kangaroo2.png",
+    "kanzeldach.png",
+    "karate.png",
+    "kardinalstonne.png",
+    "karting.png",
+    "kayak1.png",
+    "kayaking.png",
+    "kebab.png",
+    "key.png",
+    "kingair.png",
+    "kiosk.png",
+    "kitchen.png",
+    "kitesurfing.png",
+    "knottemplate.png",
+    "laboratory.png",
+    "lake.png",
+    "landfill.png",
+    "landmark.png",
+    "lateraltonne.png",
+    "laterne.png",
+    "latrine.png",
+    "laundromat.png",
+    "lawncareicon.png",
+    "leaf.png",
+    "leopard_snow.png",
+    "letter_o.png",
+    "levelcrossing.png",
+    "library.png",
+    "lifeguard-2.png",
+    "lighthouse-2.png",
+    "linedown.png",
+    "lingerie.png",
+    "liquor.png",
+    "lobster-export.png",
+    "lock-2.png",
+    "lock.png",
+    "lockerrental.png",
+    "lockerroom.png",
+    "lodging-2.png",
+    "lodging_horseriding.png",
+    "love_date.png",
+    "loveinterest.png",
+    "lungenarzt.png",
+    "magicshow.png",
+    "male-2.png",
+    "mall.png",
+    "manatee.png",
+    "manhole-elk.png",
+    "map-icon-surface-metal.png",
+    "map.png",
+    "mapicon.png",
+    "marijuana.png",
+    "marina-2.png",
+    "market.png",
+    "massage.png",
+    "mastcrane1.png",
+    "maxheight.png",
+    "maxweight.png",
+    "maxwidth.png",
+    "medicalstore.png",
+    "medicine.png",
+    "megalith.png",
+    "memorial.png",
+    "metano-icon.png",
+    "metronetwork.png",
+    "military.png",
+    "milk_and_cookies.png",
+    "milk_bottle.png",
+    "mine.png",
+    "missile-2.png",
+    "mobilephonetower.png",
+    "modernmonument.png",
+    "moderntower.png",
+    "monkey-export.png",
+    "monument-historique-icon-white-22x22-1.png",
+    "monument.png",
+    "moonstar.png",
+    "moose.png",
+    "mosquee.png",
+    "mosquito-2.png",
+    "motel-2.png",
+    "motorbike.png",
+    "motorcycle.png",
+    "mountain-pass-locator-diagonal-reverse-export.png",
+    "mountainbiking-3.png",
+    "mountains.png",
+    "mountains_cathc.png",
+    "movierental.png",
+    "moving-walkway-enter-export.png",
+    "muffin_bagle.png",
+    "mural.png",
+    "museum_archeological.png",
+    "museum_art.png",
+    "museum_crafts.png",
+    "museum_industry.png",
+    "museum_naval.png",
+    "museum_openair.png",
+    "museum_science.png",
+    "museum_war.png",
+    "mushroom.png",
+    "music.png",
+    "music_choral.png",
+    "music_classical.png",
+    "music_hiphop.png",
+    "music_live.png",
+    "music_rock.png",
+    "nailsalon.png",
+    "nanny.png",
+    "ne_barn-2.png",
+    "newsagent.png",
+    "no-nuke-export.png",
+    "nordicskiing-2.png",
+    "notvisited.png",
+    "ns_2015_nippon_marker_custom_icon.png",
+    "number_353.png",
+    "number_355.png",
+    "number_356.png",
+    "number_357.png",
+    "nursery.png",
+    "nursing_home_icon.png",
+    "observatory.png",
+    "ododow.png",
+    "office-building.png",
+    "oil-2.png",
+    "oil-and-gas-well.png",
+    "oilpumpjack.png",
+    "oilrig2.png",
+    "olfass.png",
+    "olympicsite.png",
+    "ophthalmologist.png",
+    "orienteering.png",
+    "outlet2.png",
+    "oyster-3.png",
+    "pagoda-2.png",
+    "paint.png",
+    "paintball.png",
+    "palace-2.png",
+    "palm-tree-export.png",
+    "panoramicview.png",
+    "paragliding.png",
+    "parasailing.png",
+    "parkandride.png",
+    "parking-meter-export.png",
+    "parkinggarage.png",
+    "party-2.png",
+    "patisserie.png",
+    "pause.png",
+    "peace.png",
+    "pedestriancrossing.png",
+    "penguin-2.png",
+    "pens.png",
+    "perfumery.png",
+    "petroglyphs-2.png",
+    "pets.png",
+    "peyote.png",
+    "phantom.png",
+    "phones.png",
+    "photo.png",
+    "photography.png",
+    "pickup.png",
+    "pickup_camper.png",
+    "picnic-2.png",
+    "pig.png",
+    "pin-export.png",
+    "pin.png",
+    "pinpoint.png",
+    "pirates.png",
+    "pizzaria2.png",
+    "planecrash.png",
+    "planetarium-2.png",
+    "plastering-icon.png",
+    "playground.png",
+    "pleasurepier.png",
+    "plowtruck.png",
+    "poker.png",
+    "police.png",
+    "pond.png",
+    "postal.png",
+    "powerlinepole.png",
+    "poweroutage.png",
+    "powerplant.png",
+    "powersubstation.png",
+    "prayer.png",
+    "presentation.png",
+    "price-tag-export.png",
+    "printer-2.png",
+    "prison.png",
+    "publicart.png",
+    "pyramid.png",
+    "qr-code.png",
+    "quadrifoglio.png",
+    "radar.png",
+    "radiation.png",
+    "radio-control-model-car.png",
+    "radio-station-2.png",
+    "rainy.png",
+    "rape.png",
+    "reception.png",
+    "recycle.png",
+    "regroup.png",
+    "repair.png",
+    "rescue-2.png",
+    "resort.png",
+    "restaurant.png",
+    "restaurant_african.png",
+    "restaurant_breakfast.png",
+    "restaurant_buffet.png",
+    "restaurant_chinese.png",
+    "restaurant_fish.png",
+    "restaurant_greek.png",
+    "restaurant_indian.png",
+    "restaurant_italian.png",
+    "restaurant_korean.png",
+    "restaurant_mediterranean.png",
+    "restaurant_mexican.png",
+    "restaurant_romantic.png",
+    "restaurant_steakhouse.png",
+    "restaurant_tapas.png",
+    "restaurant_thai.png",
+    "restaurant_turkish.png",
+    "restaurant_vegetarian.png",
+    "retirement_home.png",
+    "revolt.png",
+    "rice.png",
+    "riparianhabitat.png",
+    "river-2.png",
+    "road.png",
+    "roadtype_gravel.png",
+    "robbery.png",
+    "rockhouse.png",
+    "rodent.png",
+    "rollerblade.png",
+    "rollerskate.png",
+    "ropescourse.png",
+    "rowboat.png",
+    "ruble.png",
+    "rugbyfield.png",
+    "ruins-2.png",
+    "rupee-icon.png",
+    "sailing.png",
+    "sandwich-2.png",
+    "santa2.png",
+    "satellite-dish.png",
+    "sauna.png",
+    "sawmill-2.png",
+    "school.png",
+    "schreibwaren_web.png",
+    "scoutgroup.png",
+    "scubadiving.png",
+    "seals.png",
+    "segway.png",
+    "septic_tank.png",
+    "share.png",
+    "shark-export.png",
+    "shintoshrine.png",
+    "shipwreck.png",
+    "shoes.png",
+    "shooting.png",
+    "shootingrange.png",
+    "shore-2.png",
+    "shower.png",
+    "sight-2.png",
+    "signpost-2.png",
+    "sikh.png",
+    "ski_shoe1.png",
+    "skiing.png",
+    "skijump.png",
+    "skilifting.png",
+    "skis.png",
+    "skistation.png",
+    "skull.png",
+    "sleddog.png",
+    "sledge.png",
+    "sledge_summer.png",
+    "sledgerental.png",
+    "slipway.png",
+    "smallcity.png",
+    "smiley_happy.png",
+    "smoking.png",
+    "snail.png",
+    "snakes.png",
+    "sneakers.png",
+    "snorkeling.png",
+    "snowboarding.png",
+    "snowman.png",
+    "snowmobiling.png",
+    "snowpark_arc.png",
+    "snowshoeing.png",
+    "snowy-2.png",
+    "soccer.png",
+    "soil-boring-icon.png",
+    "solar-cruise.png",
+    "solarenergy.png",
+    "sozialeeinrichtung.png",
+    "spa.png",
+    "spaceport-2.png",
+    "speed_130.png",
+    "speedhump.png",
+    "speedriding.png",
+    "spelunking.png",
+    "spider.png",
+    "splice.png",
+    "sponge.png",
+    "sportscar.png",
+    "sportutilityvehicle.png",
+    "square-compass.png",
+    "squash-2.png",
+    "st-margarets-cross-map-icon-22-x-22.png",
+    "stadium.png",
+    "stairs.png",
+    "star-3.png",
+    "stargate-raw.png",
+    "start.png",
+    "startfinish.png",
+    "statue-2.png",
+    "steamtrain.png",
+    "stop.png",
+    "strike.png",
+    "stripclub2.png",
+    "submarine-2.png",
+    "sugar-shack.png",
+    "summercamp.png",
+    "sumo-2.png",
+    "sunny.png",
+    "sunsetland.png",
+    "supermarket.png",
+    "surfacelift.png",
+    "surfing.png",
+    "surfpaddle.png",
+    "surveying-2.png",
+    "swimming.png",
+    "synagogue-2.png",
+    "taekwondo-2.png",
+    "tailor.png",
+    "tajine-2.png",
+    "takeaway.png",
+    "targ.png",
+    "taxi.png",
+    "taxiboat.png",
+    "taxiway.png",
+    "teahouse.png",
+    "tebletennis.png",
+    "telephone.png",
+    "temple-2.png",
+    "templehindu.png",
+    "tennis.png",
+    "terrace.png",
+    "test-2.png",
+    "text.png",
+    "textiles.png",
+    "theater.png",
+    "thecapturelab_mapmarker-2.png",
+    "theft.png",
+    "themepark.png",
+    "therapy.png",
+    "theravadapagoda.png",
+    "theravadatemple.png",
+    "thunderstorm.png",
+    "ticket_office2.png",
+    "tidaldiamond.png",
+    "tiger-2.png",
+    "tile-shop.png",
+    "tires.png",
+    "toilets_inclusive.png",
+    "tollstation.png",
+    "tools.png",
+    "tornado-2.png",
+    "tortillas1.png",
+    "torture.png",
+    "tourisme-loisirs_telebob.png",
+    "tower.png",
+    "townhouse.png",
+    "toys.png",
+    "traditionelle_chinesische_medizin.png",
+    "trafficcamera.png",
+    "trafficlight.png",
+    "train.png",
+    "tramway.png",
+    "trash.png",
+    "travel_agency.png",
+    "treasure-mark.png",
+    "treasure_chest.png",
+    "tree.png",
+    "treedown.png",
+    "triangle-down.png",
+    "triskelion.png",
+    "trolley.png",
+    "truck3.png",
+    "truckcamper.png",
+    "tsunami.png",
+    "tunnel.png",
+    "turtle-2.png",
+    "tv.png",
+    "tweet.png",
+    "u-pick_stand.png",
+    "ufo.png",
+    "umbrella-2.png",
+    "underground.png",
+    "university.png",
+    "unlock.png",
+    "usfootball.png",
+    "van.png",
+    "velocimeter.png",
+    "vespa.png",
+    "veterinary.png",
+    "video.png",
+    "videogames.png",
+    "villa.png",
+    "vineyard-2.png",
+    "volcano-2.png",
+    "volleyball.png",
+    "waco.png",
+    "waiting.png",
+    "walkingtour.png",
+    "wandhydrant.png",
+    "war.png",
+    "warehouse-2.png",
+    "water.png",
+    "watercraft.png",
+    "waterdrop.png",
+    "waterfall-2.png",
+    "waterfilter.png",
+    "watermill-2.png",
+    "waterpark.png",
+    "waterskiing.png",
+    "watertower.png",
+    "waterway-canal-icon.png",
+    "waterwell.png",
+    "waterwellpump.png",
+    "webcam.png",
+    "wedding.png",
+    "weights.png",
+    "welding.png",
+    "welfareroom.png",
+    "wendepunkt.png",
+    "wetlands.png",
+    "whale-2.png",
+    "whiskey_barrel.png",
+    "wi-fi-2.png",
+    "wiki-export.png",
+    "wildlifecrossing.png",
+    "wind-2.png",
+    "windmill-2.png",
+    "windsurfing.png",
+    "windturbine.png",
+    "winebar.png",
+    "winetasting.png",
+    "woodshed.png",
+    "workcase.png",
+    "workshop.png",
+    "world.png",
+    "x-ray.png",
+    "yoga.png",
+    "yooner.png",
+    "you-are-here-2.png",
+    "youthhostel.png",
+    "zipper.png",
+    "zoo.png",
+    "zoom.png"
+    ];
+
+    /**
+     * Renders all icon cards into the #grid element.
+     * Each card shows the icon image and its filename (without extension).
+     */
+    function renderIcons() {
+        const grid = document.getElementById('grid');
+        const fragment = document.createDocumentFragment();
+
+        ICONS.forEach(filename => {
+            const name = filename.replace('.png', '');
+
+            const card = document.createElement('div');
+            card.className = 'icon-card';
+            card.dataset.name = name.toLowerCase();
+
+            const img = document.createElement('img');
+            img.src = `https://raw.githubusercontent.com/webwings74/getroute/main/mapicons/${filename}`;
+            img.alt = name;
+            img.loading = 'lazy';  // lazy-load for performance with 800+ images
+
+            const label = document.createElement('span');
+            label.className = 'name';
+            label.textContent = name;
+
+            card.appendChild(img);
+            card.appendChild(label);
+            fragment.appendChild(card);
+        });
+
+        grid.appendChild(fragment);
+        updateCount();
+    }
+
+    /**
+     * Filters visible icon cards based on the current value of the #filter input.
+     * Cards whose filename does not match the query are hidden via CSS class.
+     */
+    function filterIcons() {
+        const query = document.getElementById('filter').value.toLowerCase().trim();
+        const cards = document.querySelectorAll('.icon-card');
+
+        cards.forEach(card => {
+            const match = !query || card.dataset.name.includes(query);
+            card.classList.toggle('hidden', !match);
+        });
+
+        updateCount();
+    }
+
+    /**
+     * Updates the visible/total icon count display in the search bar.
+     */
+    function updateCount() {
+        const total = ICONS.length;
+        const visible = document.querySelectorAll('.icon-card:not(.hidden)').length;
+        const el = document.getElementById('count');
+        el.textContent = visible === total
+            ? `${total} icons`
+            : `${visible} / ${total} icons`;
+    }
+
+    // Initialise on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+        renderIcons();
+        document.getElementById('filter').addEventListener('input', filterIcons);
+    });
+</script>
+
+</body>
+</html>
