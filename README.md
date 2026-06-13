@@ -11,8 +11,6 @@ A web application for displaying interactive routes and locations on a map, buil
 | `openroute.py` | Python helper script to interactively build and open a route URL |
 | `mapicons.html` | Visual reference sheet of all 854 available map icons with live filter search |
 | `differences.md` | Comparison between the legacy `getroute.php` and `multiroute.php` (superseded by `maprouter.php`) |
-| `getroute.php` | *(Legacy)* Single-route script — superseded by `maprouter.php` |
-| `multiroute.php` | *(Legacy)* Multi-route script — superseded by `maprouter.php` |
 
 ## Features
 
