@@ -149,6 +149,13 @@ JSON array of one or more CSS colour strings. Multiple colours rotate per segmen
 ["navy", "orange"]
 ```
 
+### `table`
+Add `&table` (no value needed) to show a collapsible side panel with a detailed segment breakdown for each route. The panel lists every segment with its start point, end point, distance, and travel time, plus a totals row per route. In multi-route mode all routes appear as separate sections in the same panel.
+
+Point labels use the `text` value if provided, otherwise the geocoded place name, otherwise a numbered fallback ("Point 1", "Point 2", …).
+
+The panel can be toggled open and closed at any time using the button on the left edge of the map.
+
 ### `zoom`
 Integer zoom level (1–20). Overrides the automatic fit-to-bounds behaviour.
 
@@ -174,6 +181,11 @@ https://yourdomain.com/maprouter.php?location=[{"point":"Utrecht","text":"Point 
 **Route combined with a location marker:**
 ```
 https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&location=[{"point":"Utrecht","text":"Point of interest"}]
+```
+
+**Route with segment table panel:**
+```
+https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Utrecht","text":"Via"},{"point":"Rotterdam","text":"End"}]&table
 ```
 
 **Multiple routes with individual colours:**
@@ -205,6 +217,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-13 | Added `mapicons.html` — searchable visual reference for all 854 map icons |
 | 2026-06-13 | Added `differences.md` — detailed comparison between `getroute.php` and `multiroute.php` |
 | 2026-06-13 | Added `maprouter.php` — unified script merging `getroute.php` and `multiroute.php` |
+| 2026-06-13 | Added `?table` parameter — collapsible side panel with per-route segment breakdown |
 
 ---
 

@@ -14,7 +14,17 @@
             font-family: Verdana, Geneva, sans-serif;
             font-size: 14px;
         }
-        #map { height: 100vh; width: 100vw; }
+
+        /* Map fills the full viewport; shrinks horizontally when the side panel is open */
+        #map {
+            height: 100vh;
+            width: 100vw;
+            transition: width 0.3s ease;
+        }
+        #map.panel-open {
+            width: calc(100vw - 320px);
+            margin-left: 320px;
+        }
 
         /* Overlay shown in single-route mode: total distance, travel time, arrival */
         #duration-container {
@@ -26,14 +36,155 @@
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
             z-index: 1000;
-            font-weight: regular;
         }
+
+        /* ── Side panel ─────────────────────────────────────────────────── */
+        #table-panel {
+            position: fixed;
+            top: 0;
+            left: -320px;         /* hidden off-screen by default */
+            width: 320px;
+            height: 100vh;
+            background: #fff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            transition: left 0.3s ease;
+            overflow: hidden;
+        }
+        #table-panel.open {
+            left: 0;
+        }
+
+        /* Panel header with title and close button */
+        #panel-header {
+            background: #1a2a3a;
+            color: #fff;
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        #panel-header h2 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0.03em;
+        }
+        #panel-close {
+            background: none;
+            border: none;
+            color: #8fa8c0;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+        }
+        #panel-close:hover { color: #fff; }
+
+        /* Scrollable content area */
+        #panel-content {
+            overflow-y: auto;
+            flex: 1;
+            padding: 12px;
+        }
+
+        /* Route section inside the panel */
+        .route-section {
+            margin-bottom: 20px;
+        }
+        .route-section h3 {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a2a3a;
+            margin: 0 0 6px 0;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #1a2a3a;
+        }
+
+        /* Segment table */
+        .route-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .route-table th {
+            background: #f0f4f8;
+            color: #3a5068;
+            text-align: left;
+            padding: 5px 6px;
+            font-weight: 700;
+            border-bottom: 1px solid #d0dae4;
+        }
+        .route-table td {
+            padding: 5px 6px;
+            border-bottom: 1px solid #eef1f4;
+            color: #2c3e50;
+            vertical-align: top;
+        }
+        .route-table tr:last-child td {
+            border-bottom: none;
+        }
+        /* Total row at the bottom of each route table */
+        .route-table tr.total-row td {
+            font-weight: 700;
+            background: #f0f4f8;
+            border-top: 2px solid #d0dae4;
+            border-bottom: none;
+        }
+        .route-table td.num {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        /* Toggle button — always visible on the left edge of the map */
+        #panel-toggle {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            background: #1a2a3a;
+            color: #fff;
+            border: none;
+            width: 28px;
+            height: 64px;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            z-index: 1500;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: left 0.3s ease;
+            writing-mode: vertical-rl;
+            letter-spacing: 0.05em;
+        }
+        #panel-toggle.panel-open {
+            left: 320px;
+        }
+        #panel-toggle:hover { background: #243447; }
     </style>
 </head>
 <body>
 
 <!-- Total distance and time overlay (single-route mode only) -->
 <div id="duration-container"></div>
+
+<!-- Side panel (shown when ?table is present in the URL) -->
+<div id="table-panel">
+    <div id="panel-header">
+        <h2>Route details</h2>
+        <button id="panel-close" title="Close panel">&#x2715;</button>
+    </div>
+    <div id="panel-content">
+        <!-- Route tables are injected here by buildTablePanel() -->
+    </div>
+</div>
+
+<!-- Toggle button to open/close the side panel -->
+<button id="panel-toggle" title="Toggle route details">&#9776;</button>
 
 <!-- Map -->
 <div id="map"></div>
@@ -44,18 +195,26 @@
     /**
      * maprouter.php
      *
-     * Unified map routing script — merges the functionality of getroute.php
-     * and multiroute.php into a single file.
+     * Unified map routing script — handles single and multiple routes,
+     * standalone locations, selectable tile layers, and an optional
+     * collapsible side panel with per-route segment tables (?table).
      *
-     * Single route  : shows a duration/distance overlay with estimated arrival time.
-     * Multiple routes: shows per-route distance and travel time in each start marker popup.
+     * URL parameters:
+     *   route    — JSON array of route points (repeat for multiple routes)
+     *   location — JSON array of standalone location markers
+     *   layer    — tile layer: 'topo', 'cycle', 'transport', or default OSM
+     *   profile  — ORS routing profile (driving-car, cycling-regular, etc.)
+     *   section  — 'true' to show per-segment stats in waypoint popups
+     *   color    — JSON array of CSS colors, one array per route
+     *   zoom     — integer zoom level override
+     *   table    — (no value needed) show the collapsible segment table panel
      *
      * Libraries used:
-     *   Leaflet.js          — interactive map rendering
-     *   OpenRouteService    — route calculation (API key required)
-     *   Nominatim           — geocoding of address strings (no key required)
-     *   Tracestrack         — topographic tile layer (API key required)
-     *   Thunderforest       — cycling/transport tile layers (API key required)
+     *   Leaflet.js        — interactive map rendering
+     *   OpenRouteService  — route calculation (API key required)
+     *   Nominatim         — geocoding of address strings (no key required)
+     *   Tracestrack       — topographic tile layer (API key required)
+     *   Thunderforest     — cycling/transport tile layers (API key required)
      */
 
     // ── API keys (loaded from config.js) ────────────────────────────────────
@@ -75,7 +234,13 @@
     let totalDistance     = 0;
     let totalDuration     = 0;
     let bounds            = L.latLngBounds(); // Bounding box of all rendered elements
-    let notFoundLocations = [];               // Accumulates location names that could not be geocoded
+    let notFoundLocations = [];               // Location names that could not be geocoded
+
+    /**
+     * tableData holds the collected segment data for the side panel.
+     * Structure: [ { routeLabel, segments: [ { from, to, distance, duration } ] } ]
+     */
+    let tableData = [];
 
     // ── Map initialisation ──────────────────────────────────────────────────
     var map = L.map('map').setView([52.3676, 4.9041], 10);
@@ -105,7 +270,7 @@
                 tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
                 break;
             default:
-                tileLayerUrl         = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"; // Default OSM layer
+                tileLayerUrl         = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
                 tileLayerAttribution = "&copy; OpenStreetMap contributors";
                 break;
         }
@@ -132,8 +297,7 @@
 
     /**
      * Parses all ?color= URL parameters and returns an array of color arrays,
-     * one per route. Each color array cycles through per-segment colors.
-     * Falls back to ['navy'] if no color parameters are present.
+     * one per route. Falls back to ['navy'] if no color parameters are present.
      *
      * @returns {string[][]}
      */
@@ -160,9 +324,9 @@
      * Returns the CSS color string for a given route and segment index.
      * Cycles through color arrays (per route) and colors within each array (per segment).
      *
-     * @param {string[][]} colorParams  - Array of color arrays
-     * @param {number} routeIndex       - Zero-based route index
-     * @param {number} segmentIndex     - Zero-based segment index within the route
+     * @param {string[][]} colorParams - Array of color arrays
+     * @param {number} routeIndex      - Zero-based route index
+     * @param {number} segmentIndex    - Zero-based segment index within the route
      * @returns {string}
      */
     function getSegmentColor(colorParams, routeIndex, segmentIndex) {
@@ -172,7 +336,7 @@
 
     /**
      * Parses all ?route= URL parameters and returns an array of route arrays.
-     * Supports multiple routes by repeating the route parameter in the query string.
+     * Supports multiple routes by repeating the parameter in the query string.
      * Each route is an array of point objects { point, text, icon }.
      *
      * @returns {Array[]}
@@ -201,7 +365,7 @@
     }
 
     /**
-     * Parses the ?location= URL parameter and returns an array of standalone location points.
+     * Parses the ?location= URL parameter and returns an array of standalone markers.
      * Each point contains { point, text, icon }.
      * Returns an empty array if the parameter is missing or invalid.
      *
@@ -227,9 +391,117 @@
         }
     }
 
-    // ── Main entry point ─────────────────────────────────────────────────────
+    // ── Side panel ────────────────────────────────────────────────────────────
+
+    /**
+     * Opens or closes the side panel and shifts the map accordingly.
+     * Called by the toggle button and the close button inside the panel.
+     *
+     * @param {boolean} open - True to open, false to close
+     */
+    function setPanelOpen(open) {
+        document.getElementById('table-panel').classList.toggle('open', open);
+        document.getElementById('panel-toggle').classList.toggle('panel-open', open);
+        document.getElementById('map').classList.toggle('panel-open', open);
+        // Notify Leaflet that the map container size has changed
+        setTimeout(() => map.invalidateSize(), 310);
+    }
+
+    document.getElementById('panel-toggle').addEventListener('click', () => {
+        const isOpen = document.getElementById('table-panel').classList.contains('open');
+        setPanelOpen(!isOpen);
+    });
+    document.getElementById('panel-close').addEventListener('click', () => setPanelOpen(false));
+
+    /**
+     * Builds the HTML for the side panel from the collected tableData and injects it.
+     * Called after all routes have been rendered.
+     * Each route gets its own section with a segment table and a totals row.
+     */
+    function buildTablePanel() {
+        const content = document.getElementById('panel-content');
+        content.innerHTML = '';
+
+        tableData.forEach(route => {
+            const section = document.createElement('div');
+            section.className = 'route-section';
+
+            const heading = document.createElement('h3');
+            heading.textContent = route.routeLabel;
+            section.appendChild(heading);
+
+            const table = document.createElement('table');
+            table.className = 'route-table';
+
+            // Header row
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>From</th>
+                        <th>To</th>
+                        <th class="num">Distance</th>
+                        <th class="num">Time</th>
+                    </tr>
+                </thead>
+            `;
+
+            const tbody = document.createElement('tbody');
+            let totalDist = 0;
+            let totalDur  = 0;
+
+            route.segments.forEach(seg => {
+                totalDist += seg.distance;
+                totalDur  += seg.duration;
+
+                const mins = Math.round(seg.duration / 60);
+                const tr   = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${seg.from}</td>
+                    <td>${seg.to}</td>
+                    <td class="num">${(seg.distance / 1000).toFixed(2)} km</td>
+                    <td class="num">${mins} min</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Totals row
+            const totalMins = Math.round(totalDur / 60);
+            const totalHrs  = Math.floor(totalMins / 60);
+            const totalMin  = (totalMins % 60).toString().padStart(2, '0');
+            const totalTr   = document.createElement('tr');
+            totalTr.className = 'total-row';
+            totalTr.innerHTML = `
+                <td colspan="2">Total</td>
+                <td class="num">${(totalDist / 1000).toFixed(2)} km</td>
+                <td class="num">${totalHrs > 0 ? totalHrs + ' hr ' : ''}${totalMin} min</td>
+            `;
+            tbody.appendChild(totalTr);
+
+            table.appendChild(tbody);
+            section.appendChild(table);
+            content.appendChild(section);
+        });
+
+        // Open the panel automatically after building
+        setPanelOpen(true);
+    }
+
+    /**
+     * Returns a human-readable label for a route point.
+     * Uses text if available, otherwise the displayName, otherwise a fallback number.
+     *
+     * @param {Object} coord  - Coordinate object with optional text and displayName
+     * @param {number} index  - Zero-based index of the point in the route
+     * @returns {string}
+     */
+    function pointLabel(coord, index) {
+        return coord.text || coord.displayName || `Point ${index + 1}`;
+    }
+
+    // ── Main entry point ──────────────────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", function () {
         notFoundLocations = [];
+        tableData         = [];
 
         const routes        = getRoutesFromQuery();
         const locations     = getLocationsFromQuery();
@@ -238,6 +510,13 @@
         const requestedZoom = getRequestedZoom();
         const colorParams   = getColorParams();
         const multiRoute    = routes.length > 1;
+        const showTable     = urlParams.has("table");
+
+        // Hide the panel toggle button when ?table is not requested
+        if (!showTable) {
+            document.getElementById('panel-toggle').style.display = 'none';
+            document.getElementById('table-panel').style.display  = 'none';
+        }
 
         // In multi-route mode, remove the single-route overlay from the DOM
         if (multiRoute) {
@@ -255,17 +534,21 @@
         // Process each route
         routes.forEach((route, index) => {
             if (route.length > 0) {
-                promises.push(plotRoutes(route, section, profile, index, colorParams, multiRoute));
+                promises.push(plotRoutes(route, section, profile, index, colorParams, multiRoute, showTable));
             }
         });
 
-        // After all rendering is done, fit the map and report missing locations
+        // After all rendering: report errors, fit map, build table panel if requested
         Promise.all(promises).then(() => {
             if (notFoundLocations.length > 0) {
                 const list = notFoundLocations.map(loc => `• ${loc}`).join('\n');
                 alert(`The following location(s) could not be found:\n\n${list}`);
             }
             fitMap(requestedZoom);
+
+            if (showTable && tableData.length > 0) {
+                buildTablePanel();
+            }
         });
 
         // No input at all — fall back to geolocation or Amsterdam
@@ -274,7 +557,7 @@
         }
     });
 
-    // ── Map fitting ──────────────────────────────────────────────────────────
+    // ── Map fitting ───────────────────────────────────────────────────────────
 
     /**
      * Fits the map to the current bounds, or forces a specific zoom level.
@@ -293,7 +576,7 @@
         }
     }
 
-    // ── Geolocation fallback ─────────────────────────────────────────────────
+    // ── Geolocation fallback ──────────────────────────────────────────────────
 
     /**
      * Attempts to centre the map on the user's current position.
@@ -332,11 +615,11 @@
         }).addTo(map).bindPopup("Fallback: Amsterdam").openPopup();
     }
 
-    // ── Standalone location rendering ────────────────────────────────────────
+    // ── Standalone location rendering ─────────────────────────────────────────
 
     /**
      * Geocodes an array of standalone locations via Nominatim and adds markers to the map.
-     * Missing locations are added to notFoundLocations for reporting after all rendering.
+     * Missing locations are recorded in notFoundLocations.
      *
      * @param {Object[]} locations - Array of location point objects { point, text, icon }
      * @returns {Promise}
@@ -386,22 +669,22 @@
         });
     }
 
-    // ── Route rendering ──────────────────────────────────────────────────────
+    // ── Route rendering ───────────────────────────────────────────────────────
 
     /**
      * Geocodes all points in a route, pre-calculates totals, then draws each segment.
-     * In multi-route mode, totals are shown in the start marker popup.
-     * In single-route mode, totals are shown in the bottom-right overlay.
+     * Also initialises a tableData entry for this route if ?table is active.
      *
-     * @param {Object[]} route       - Array of route point objects { point, text, icon }
-     * @param {boolean} section      - Show per-segment stats in waypoint popups
-     * @param {string} profile       - OpenRouteService routing profile
-     * @param {number} routeIndex    - Zero-based index of this route (for color selection)
+     * @param {Object[]} route         - Array of route point objects { point, text, icon }
+     * @param {boolean} section        - Show per-segment stats in waypoint popups
+     * @param {string} profile         - OpenRouteService routing profile
+     * @param {number} routeIndex      - Zero-based index of this route
      * @param {string[][]} colorParams - Parsed color arrays
-     * @param {boolean} multiRoute   - True when more than one route is being rendered
+     * @param {boolean} multiRoute     - True when more than one route is being rendered
+     * @param {boolean} showTable      - True when ?table is present in the URL
      * @returns {Promise}
      */
-    function plotRoutes(route, section, profile, routeIndex, colorParams, multiRoute) {
+    function plotRoutes(route, section, profile, routeIndex, colorParams, multiRoute, showTable) {
         const fetches = route.map(point => {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(point.point)}`;
             return fetch(url).then(r => {
@@ -412,7 +695,7 @@
 
         return Promise.all(fetches)
             .then(locations => {
-                const coordinates = [];
+                const coordinates  = [];
                 const localNotFound = [];
 
                 locations.forEach((location, index) => {
@@ -435,8 +718,17 @@
                     throw new Error("Some locations could not be found: " + localNotFound.join(", "));
                 }
 
-                // Pre-calculate total distance/duration for the start marker popup (multi-route)
-                // or for the overlay (single-route)
+                // Prepare a tableData slot for this route (filled per segment below)
+                let tableEntry = null;
+                if (showTable) {
+                    const startLabel = pointLabel(coordinates[0], 0);
+                    const routeLabel = multiRoute
+                        ? `Route ${routeIndex + 1} — ${startLabel}`
+                        : startLabel;
+                    tableEntry = { routeLabel, segments: [] };
+                    tableData.push(tableEntry);
+                }
+
                 return calculateTotalRouteData(coordinates, profile)
                     .then(({ totalDuration: routeDuration, totalDistance: routeDistance }) => {
                         const segmentPromises = [];
@@ -452,7 +744,9 @@
                                 i === coordinates.length - 2,
                                 routeDuration,
                                 routeDistance,
-                                multiRoute
+                                multiRoute,
+                                tableEntry,
+                                i
                             ));
                         }
                         return Promise.all(segmentPromises);
@@ -463,12 +757,13 @@
 
     /**
      * Fetches a single route segment from OpenRouteService and draws it on the map.
+     * Appends segment data to tableEntry when table mode is active.
      *
      * Start marker behaviour:
-     *   - Multi-route mode: popup shows total distance and travel time for this route.
-     *   - Single-route mode: popup shows the start label only; totals go to the overlay.
+     *   - Multi-route: popup shows total distance and travel time for this route.
+     *   - Single-route: popup shows the start label; totals go to the overlay.
      *
-     * End/waypoint marker: optionally shows per-segment distance and time when section=true.
+     * End/waypoint marker: optionally shows per-segment distance and time (section=true).
      *
      * @param {Object} start           - Start coordinate { lat, lon, text, icon, displayName }
      * @param {Object} end             - End coordinate
@@ -476,13 +771,16 @@
      * @param {boolean} section        - Show per-segment stats in waypoint popups
      * @param {string} profile         - OpenRouteService routing profile
      * @param {boolean} isFirstSegment - Render the start marker
-     * @param {boolean} isLastSegment  - Use the end/finish icon on the final marker
+     * @param {boolean} isLastSegment  - Use end/finish icon; update single-route overlay
      * @param {number} routeDuration   - Pre-calculated total route duration in seconds
      * @param {number} routeDistance   - Pre-calculated total route distance in metres
      * @param {boolean} multiRoute     - True when more than one route is being rendered
+     * @param {Object|null} tableEntry - tableData entry to append segment data to, or null
+     * @param {number} segmentIndex    - Zero-based index of this segment within the route
      * @returns {Promise<{distance: number, duration: number}>}
      */
-    function plotSegment(start, end, color, section, profile, isFirstSegment, isLastSegment, routeDuration, routeDistance, multiRoute) {
+    function plotSegment(start, end, color, section, profile, isFirstSegment, isLastSegment,
+                         routeDuration, routeDistance, multiRoute, tableEntry, segmentIndex) {
         return new Promise((resolve, reject) => {
             const startIcon = L.icon({
                 iconUrl:     start.icon ? start.icon : (isFirstSegment ? startIconUrl : defaultIconUrl),
@@ -516,14 +814,22 @@
                     const duration = routeData.features[0].properties.segments[0].duration;
                     const distance = routeData.features[0].properties.segments[0].distance;
 
+                    // Collect segment data for the table panel
+                    if (tableEntry) {
+                        tableEntry.segments.push({
+                            from:     pointLabel(start, segmentIndex),
+                            to:       pointLabel(end,   segmentIndex + 1),
+                            distance,
+                            duration
+                        });
+                    }
+
                     // Start marker (first segment only)
                     if (isFirstSegment) {
                         const startMarker = L.marker([start.lat, start.lon], { icon: startIcon }).addTo(map);
-
                         let startPopupText = start.text || `Start: ${start.displayName}`;
 
                         if (multiRoute) {
-                            // Multi-route: embed total stats in the start popup
                             const distKm   = (routeDistance / 1000).toFixed(2);
                             const mins     = Math.round(routeDuration / 60);
                             const timeText = `${Math.floor(mins / 60)} hr ${mins % 60} min`;
@@ -560,7 +866,7 @@
                     endMarker.on('mouseover', function () { this.openPopup(); });
                     endMarker.on('mouseout',  function () { this.closePopup(); });
 
-                    // Single-route mode: update the bottom-right overlay on the last segment
+                    // Single-route overlay: update on the last segment
                     if (!multiRoute && isLastSegment) {
                         const totalMins    = Math.round(totalDuration / 60);
                         const totalHours   = Math.floor(totalMins / 60);
@@ -568,9 +874,9 @@
                         const timeText     = `${totalHours} hr ${totalMinutes} min`;
                         const distKm       = (totalDistance / 1000).toFixed(2);
 
-                        const now          = new Date();
-                        const arrival      = new Date(now.getTime() + totalDuration * 1000);
-                        const arrivalText  = `${arrival.getHours().toString().padStart(2,'0')}:${arrival.getMinutes().toString().padStart(2,'0')}`;
+                        const now         = new Date();
+                        const arrival     = new Date(now.getTime() + totalDuration * 1000);
+                        const arrivalText = `${arrival.getHours().toString().padStart(2,'0')}:${arrival.getMinutes().toString().padStart(2,'0')}`;
 
                         const container = document.getElementById("duration-container");
                         if (container) {
@@ -612,7 +918,7 @@
                 return r.json();
             })
             .then(data => {
-                const segments     = data.features[0].properties.segments;
+                const segments      = data.features[0].properties.segments;
                 const totalDuration = segments.reduce((sum, s) => sum + s.duration, 0);
                 const totalDistance = segments.reduce((sum, s) => sum + s.distance, 0);
                 return { totalDuration, totalDistance };
