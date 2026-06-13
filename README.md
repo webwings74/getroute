@@ -7,11 +7,12 @@ A web application for displaying interactive routes and locations on a map, buil
 | File | Description |
 |---|---|
 | `example-config.js` | Configuration template — copy to `config.js` and fill in your API keys |
-| `getroute.php` | Main application: displays a single route and/or standalone locations on the map |
-| `multiroute.php` | Multi-route variant: renders multiple routes simultaneously |
+| `maprouter.php` | **Main application** — handles single and multiple routes, standalone locations, all tile layers and all URL parameters |
 | `openroute.py` | Python helper script to interactively build and open a route URL |
 | `mapicons.html` | Visual reference sheet of all 854 available map icons with live filter search |
-| `differences.md` | Detailed comparison between `getroute.php` and `multiroute.php` |
+| `differences.md` | Comparison between the legacy `getroute.php` and `multiroute.php` (superseded by `maprouter.php`) |
+| `getroute.php` | *(Legacy)* Single-route script — superseded by `maprouter.php` |
+| `multiroute.php` | *(Legacy)* Multi-route script — superseded by `maprouter.php` |
 
 ## Features
 
@@ -19,7 +20,7 @@ A web application for displaying interactive routes and locations on a map, buil
 The map is rendered with Leaflet.js. The default tile layer is OpenStreetMap; additional layers are available via the `layer` URL parameter.
 
 ### 2. Routes
-Routes are calculated by the OpenRouteService API. Pass a `route` parameter in the URL as a JSON array. Each point supports:
+Routes are calculated by the OpenRouteService API. Pass one or more `route` parameters in the URL as JSON arrays. Each point supports:
 - `point` *(required)*: address or coordinates
 - `text` *(optional)*: popup text (supports full HTML, including `<img>` tags)
 - `icon` *(optional)*: URL of a custom marker icon
@@ -33,7 +34,13 @@ Example:
 ]
 ```
 
-### 3. Locations
+### 3. Single-route mode vs. multi-route mode
+`maprouter.php` detects automatically how many routes are passed:
+
+- **Single route** (`?route=[...]`): total distance, travel time, and estimated arrival are shown in an overlay in the bottom-right corner of the map.
+- **Multiple routes** (`?route=[...]&route=[...]&...`): each route shows its total distance and travel time in the start marker popup. No arrival time is shown.
+
+### 4. Locations
 Standalone markers (not connected by a route) are passed via the `location` parameter, using the same format as route points.
 
 Example:
@@ -43,12 +50,8 @@ Example:
 ]
 ```
 
-### 4. Current location fallback
+### 5. Current location fallback
 If no routes or locations are provided, the app attempts to use the browser's geolocation API. If that fails, the map falls back to Amsterdam.
-
-### 5. Distance and travel time
-- **`getroute.php`**: shows total distance, travel time, and estimated arrival in an overlay in the bottom-right corner of the map.
-- **`multiroute.php`**: shows total distance and travel time in the start marker popup of each individual route. No arrival time is calculated.
 
 ### 6. Available icons
 The `mapicons/` folder contains 854 icons for use as custom markers. Open `mapicons.html` in a browser for a searchable visual overview.
@@ -61,7 +64,7 @@ https://yourdomain.com/mapicons/campfire.png
 Custom icons can be created with the included `.pxd` files (compatible with Pixelmator Pro, GIMP, or Photoshop).
 
 ### 7. Route colours
-Route lines can be customised with the `color` parameter. Pass a single colour or a JSON array; multiple colours are applied per segment in rotation.
+Route lines can be customised with the `color` parameter. Pass a single colour or a JSON array; multiple colours are applied per segment in rotation. In multi-route mode, each `?color=` parameter applies to the corresponding route.
 
 Example:
 ```json
@@ -76,7 +79,7 @@ Example:
 The scripts are PHP, so a PHP-capable web server is required (e.g. Apache, Nginx, or XAMPP for local development). External API calls are made from the browser, so no server-side proxy is needed.
 
 ### 2. Place the files
-Ensure `config.js` and the PHP files are in the same directory on your server.
+Ensure `config.js` and `maprouter.php` are in the same directory on your server.
 
 ### 3. Configure API keys
 Copy `example-config.js` to `config.js` and fill in your keys:
@@ -89,14 +92,9 @@ const config = {
 ```
 
 ### 4. Open the application
-Navigate to `getroute.php` in your browser and add URL parameters as needed:
+Navigate to `maprouter.php` in your browser and add URL parameters as needed:
 ```
-https://yourdomain.com/getroute.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
-```
-
-For multiple routes, use `multiroute.php` with repeated `route` parameters:
-```
-https://yourdomain.com/multiroute.php?route=[...]&route=[...]
+https://yourdomain.com/maprouter.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
 ```
 
 ---
@@ -104,7 +102,7 @@ https://yourdomain.com/multiroute.php?route=[...]&route=[...]
 ## URL parameters
 
 ### `route`
-JSON array of route points. Required for drawing a route.
+JSON array of route points. Repeat the parameter for multiple routes.
 
 ```json
 [{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]
@@ -145,7 +143,7 @@ OpenRouteService routing profile. Options:
 | `wheelchair` | Wheelchair accessible |
 
 ### `color`
-JSON array of one or more CSS colour strings. Multiple colours rotate per segment.
+JSON array of one or more CSS colour strings. Multiple colours rotate per segment. In multi-route mode, repeat the parameter — one per route.
 
 ```json
 ["navy", "orange"]
@@ -160,27 +158,27 @@ Integer zoom level (1–20). Overrides the automatic fit-to-bounds behaviour.
 
 **Map only (current location or Amsterdam fallback):**
 ```
-https://yourdomain.com/getroute.php
+https://yourdomain.com/maprouter.php
 ```
 
 **Single route with topo layer and cycling profile:**
 ```
-https://yourdomain.com/getroute.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&layer=topo&profile=cycling-regular
+https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&layer=topo&profile=cycling-regular
 ```
 
 **Standalone location marker:**
 ```
-https://yourdomain.com/getroute.php?location=[{"point":"Utrecht","text":"Point of interest"}]
+https://yourdomain.com/maprouter.php?location=[{"point":"Utrecht","text":"Point of interest"}]
 ```
 
 **Route combined with a location marker:**
 ```
-https://yourdomain.com/getroute.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&location=[{"point":"Utrecht","text":"Point of interest"}]
+https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&location=[{"point":"Utrecht","text":"Point of interest"}]
 ```
 
-**Multiple routes (multiroute.php):**
+**Multiple routes with individual colours:**
 ```
-https://yourdomain.com/multiroute.php?route=[{"point":"Amsterdam"},{"point":"Utrecht"}]&route=[{"point":"Rotterdam"},{"point":"Den Haag"}]
+https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utrecht"}]&color=["navy"]&route=[{"point":"Rotterdam"},{"point":"Den Haag"}]&color=["orange"]
 ```
 
 ---
@@ -206,6 +204,7 @@ https://yourdomain.com/multiroute.php?route=[{"point":"Amsterdam"},{"point":"Utr
 | 2026-06-13 | All code, comments, and UI strings translated to English |
 | 2026-06-13 | Added `mapicons.html` — searchable visual reference for all 854 map icons |
 | 2026-06-13 | Added `differences.md` — detailed comparison between `getroute.php` and `multiroute.php` |
+| 2026-06-13 | Added `maprouter.php` — unified script merging `getroute.php` and `multiroute.php` |
 
 ---
 
