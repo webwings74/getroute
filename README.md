@@ -1,190 +1,222 @@
-# Webwings Routekaarten
+# Webwings Route Maps
 
-Dit project is een webapplicatie waarmee routes en locaties op een interactieve kaart kunnen worden weergegeven. Dit kan afzonderlijk, of tegelijkertijd. Het maakt gebruik van de [OpenStreetMap](https://www.openstreetmap.org/)-kaartlaag en integreert verschillende API's om routes en locaties te visualiseren. Voor sommige API's is een API-sleutel vereist met een (gratis) account, zoals o.a. bij [TracesTrack](https://tracestrack.com/), [ThunderForest](https://www.thunderforest.com/) en [OpenRouteService](https://openrouteservice.org/).
+A web application for displaying interactive routes and locations on a map, built on [OpenStreetMap](https://www.openstreetmap.org/) and [Leaflet.js](https://leafletjs.com/). Routes are calculated via the [OpenRouteService](https://openrouteservice.org/) API; locations are geocoded via [Nominatim](https://nominatim.org/). Some tile layers require a free API key.
 
-## Bestanden in dit project
+## Files in this project
 
-- **`example-config.js`**: Voorbeeld van de configuratie, je moet dit bestand kopieren naar `config.js` en dan al je eigen API keys invullen.
-- **`getroute.php`**: De hoofdtoepassing die de kaart weergeeft en routes en locaties verwerkt.
-- **`multiroute.php`**: Een script dat meerdere routes tegelijk kan weergeven.
-- **`openroute.py`**: Python-script om een route-URL makkelijker te genereren.
+| File | Description |
+|---|---|
+| `example-config.js` | Configuration template — copy to `config.js` and fill in your API keys |
+| `getroute.php` | Main application: displays a single route and/or standalone locations on the map |
+| `multiroute.php` | Multi-route variant: renders multiple routes simultaneously |
+| `openroute.py` | Python helper script to interactively build and open a route URL |
+| `mapicons.html` | Visual reference sheet of all 854 available map icons with live filter search |
+| `differences.md` | Detailed comparison between `getroute.php` and `multiroute.php` |
 
-## Functionaliteiten
+## Features
 
-### 1. **Kaartweergave**
-De kaart wordt weergegeven met behulp van de [Leaflet.js](https://leafletjs.com/) bibliotheek en toont standaard een OpenStreetMap-kaartlaag.
+### 1. Map display
+The map is rendered with Leaflet.js. The default tile layer is OpenStreetMap; additional layers are available via the `layer` URL parameter.
 
-### 2. **Routes**
-- Routes worden opgehaald via de OpenRouteService API.
-- De gebruiker kan een `route`-parameter in de URL meegeven als een JSON-array. Elk punt in de array bevat:
-  - `point`: De locatie (adres of coördinaten).
-  - `text`: Optionele tekst die wordt weergegeven in een popup.
-  - `icon`: Optionele URL van een icoon dat wordt gebruikt voor de marker.
+### 2. Routes
+Routes are calculated by the OpenRouteService API. Pass a `route` parameter in the URL as a JSON array. Each point supports:
+- `point` *(required)*: address or coordinates
+- `text` *(optional)*: popup text (supports full HTML, including `<img>` tags)
+- `icon` *(optional)*: URL of a custom marker icon
 
-Hieronder volgt een voorbeeld van een `route`-parameter, met en zonder de optionele parameters text en icon. De text parameter kan een volledige HTML formaat hebben, inclusief `<img src'..'>` tags. Dit kan de URL wel lang maken, dus gebruik dit met mate. De icon parameter kan een URL zijn naar een afbeelding die als icoon wordt weergegeven op de kaart.
-
+Example:
 ```json
 [
-    {"point": "Amsterdam", "text": "Startpunt", "icon": "https://example.com/start.png"},
-    {"point": "Rotterdam", "text": "Eindpunt"},
+    {"point": "Amsterdam", "text": "Start", "icon": "https://example.com/start.png"},
+    {"point": "Rotterdam", "text": "End"},
     {"point": "Utrecht"}
 ]
 ```
 
-### 3. **Locaties**
-- Locaties worden opgehaald via de Nominatim API.
-- De gebruiker kan een `location`-parameter in de URL meegeven als een JSON-array. Elk punt in de array bevat dezelfde eigenschappen als een routepunt.
+### 3. Locations
+Standalone markers (not connected by a route) are passed via the `location` parameter, using the same format as route points.
 
-Voorbeeld van een `location`-parameter:
+Example:
 ```json
 [
-    {"point": "Utrecht", "text": "Bezienswaardigheid"}
+    {"point": "Utrecht", "text": "Point of interest"}
 ]
 ```
 
-### 4. **Huidige locatie**
-Als er geen routes of locaties zijn opgegeven, probeert de applicatie de huidige locatie van de gebruiker te bepalen via de browser's geolocatie-API. Als dit niet lukt, wordt er een fallback naar Amsterdam gebruikt.
+### 4. Current location fallback
+If no routes or locations are provided, the app attempts to use the browser's geolocation API. If that fails, the map falls back to Amsterdam.
 
-### 5. **Totale afstand en tijd**
-- De totale afstand en reistijd van de route worden berekend en weergegeven in een overlay (`#duration-container`) op de kaart.
-- De aankomsttijd wordt ook berekend op basis van de huidige tijd en de totale reistijd.
-- In de `multiroute.php` is *geen* overlay container, maar staan de totale rijtijd en -afstand vermeld bij de popup over het startpunt van elke route.
+### 5. Distance and travel time
+- **`getroute.php`**: shows total distance, travel time, and estimated arrival in an overlay in the bottom-right corner of the map.
+- **`multiroute.php`**: shows total distance and travel time in the start marker popup of each individual route. No arrival time is calculated.
 
-### 6. **Beschikbare Iconen**
+### 6. Available icons
+The `mapicons/` folder contains 854 icons for use as custom markers. Open `mapicons.html` in a browser for a searchable visual overview.
 
-In de folder `mapicons` zijn een aantal iconen beschikbaar die je kunt gebruiken voor markers op de kaart. Deze iconen kunnen worden opgegeven via de `icon`-parameter in de JSON-array van een route- of locatiepunt. Je kunt met de `.pxd` bestanden eigen iconen maken, met bijvoorbeeld Pixelmator Pro, GIMP of Photoshop.
+Icons can be referenced by their full URL, for example:
+```
+https://yourdomain.com/mapicons/campfire.png
+```
 
-| Bestandsnaam         | Voorbeeld                              |
-|-----------------------|----------------------------------------|
-| `campfire.png`        | ![campfire](mapicons/campfire.png)    |
-| `campingcar.png`      | ![campingcar](mapicons/campingcar.png)|
-| `pause.png`           | ![pause](mapicons/pause.png)          |
-| `pin.png`             | ![pin](mapicons/pin.png)              |
-| `pinpoint.png`        | ![pinpoint](mapicons/pinpoint.png)    |
-| `start.png`           | ![start](mapicons/start.png)          |
-| `stop.png`            | ![stop](mapicons/stop.png)            |
-| `truckcamper.png`     | ![truckcamper](mapicons/truckcamper.png) |
-| `caravan.png`        | ![caravan](mapicons/caravan.png)      |
-| `home-2.png`            | ![home](mapicons/home-2.png)            |
-| `workshop.png`        | ![workshop](mapicons/workshop.png)    |
-| `world.png`           | ![world](mapicons/world.png)          |
+Custom icons can be created with the included `.pxd` files (compatible with Pixelmator Pro, GIMP, or Photoshop).
 
-Je kunt deze iconen gebruiken door de bestandsnaam op te geven in de `icon`-parameter, bijvoorbeeld: `mapicons/start.png`. Als je eigen iconen wilt toevoegen, plaats deze dan in de `mapicons`-folder en geef de bestandsnaam op in de `icon`-parameter.
+### 7. Route colours
+Route lines can be customised with the `color` parameter. Pass a single colour or a JSON array; multiple colours are applied per segment in rotation.
 
-### 7. **Kleuren**
-Het is mogelijk om de route in andere kleuren, danwel segmenten in opvolgende kleuren te presenteren met de `color` parameter. Het kan met een enkele kleur, of een array van kleuren.
-
-Voorbeeld van een `color`-parameter, bij meerdere kleuren worden ze opeenvolgend geroteerd:
+Example:
 ```json
- ['navy', 'orange', 'green', 'purple']
+["navy", "orange", "green", "purple"]
 ```
 
-## Hoe te gebruiken
+---
 
-1. **Installeer een lokale server**
-   Het script is PHP, dus de webserver moet dit ondersteunen. Omdat het script externe API's gebruikt, moet het worden uitgevoerd op een server (bijvoorbeeld Apache of een lokale server zoals XAMPP).
+## Setup
 
-2. **Plaats de bestanden**
-   Zorg ervoor dat `config.js` en `getroute.php` in dezelfde map staan.
+### 1. Requirements
+The scripts are PHP, so a PHP-capable web server is required (e.g. Apache, Nginx, or XAMPP for local development). External API calls are made from the browser, so no server-side proxy is needed.
 
-3. **Voeg API-sleutels toe**
-   Vul de API-sleutels in `config.js` in met je eigen sleutels. Dit bestand is niet toegankelijk voor de browser, maar moet wel correct zijn ingesteld om de API's te kunnen gebruiken. Hier is een voorbeeld van hoe de inhoud van het bestand eruit zou moeten zien:
-   ```js
-   const config = {
-       thunderforestApiKey: "JOUW_THUNDERFOREST_API_KEY",
-       tracestrackApiKey: "JOUW_TRACESTRACK_API_KEY",
-       openRouteServiceApiKey: "JOUW_OPENROUTESERVICE_API_KEY"
-   };
-   ```
+### 2. Place the files
+Ensure `config.js` and the PHP files are in the same directory on your server.
 
-4. **Open de applicatie**
-   Open `getroute.php` in een browser via de server. Voeg parameters toe aan de URL om routes en locaties te specificeren:
-   ```
-   http://localhost/getroute.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
-   ```
-5. **Bij gebruik van multiroute.php**
-   Open multiroute.php` in een browser. Je kunt nu meerdere ?route[...]&route[...]... toevoegen, om meerdere routes weer te geven op de kaart.
-
-### Beschikbare URL-parameters
-
-- **`route`**: Een JSON-array met routepunten. Elk punt bevat:
-  - `point`: De locatie (adres of coördinaten).
-  - `text`: Optionele tekst die wordt weergegeven in een popup.
-  - `icon`: Optionele URL van een icoon dat wordt gebruikt voor de marker.  
-
-  Voorbeeld:
-  ```json
-  [{"point":"Amsterdam","text":"Startpunt"},{"point":"Rotterdam","text":"Eindpunt"}]
-  ```
-
-- **`location`**: Een JSON-array met locaties. Elk punt bevat dezelfde eigenschappen als een routepunt.
-
-  Voorbeeld:
-  ```json
-  [{"point":"Utrecht","text":"Bezienswaardigheid"}]
-  ```
-
-### Verdere optionele parameters
-
-- **`layer`**: De kaartlaag die wordt gebruikt. Mogelijke waarden:
-  - `osm`: (standaard) OpenStreetMap-kaartlaag.
-  - `cycle`: Fietsknooppuntenkaartlaag.
-  - `transport`: OpenStreetMap-transportkaartlaag
-  - `topo`: Tracestrack topografische kaartlaag (vereist een API-sleutel).
-
-- **`section`**: Een boolean (`true` of `false`) die bepaalt of de bij tussenpunten van de route de tussenafstand en -tijd moet worden weergegeven in de popup-tekst. Standaard is `false`.
-
-- **`profile`**: Het vervoersprofiel dat wordt gebruikt voor routeberekeningen die OpenRouteService kan leveren. Mogelijke waarden:
-  - `driving-car` (standaard): Autorijden.
-  - `cycling-regular`: Fietsen, of specifieker `cycling-road` voor de weg, `cycling-mountain` voor mountainbiken, `cycling-electric` voor e-bikes.
-  - `foot-hiking`: Wandelen, of specifieker `foot-walking` voor wandelen met een specifieke focus op voetpaden, `foot-mountain`: Bergwandelen.
-  - `wheelchair`: Toegankelijkheid voor rolstoelen.
-
-- **`color`**: De kleur van de route op de kaart. Dit is een array, met minimaal 1 kleur en anders per segment een wisselende kleur.
-  - `color`: Optionele array van kleur(en) van de route, `color=["orange","navy"]`
-
-- **`zoom`**: De zoomfactor van de kaart, als je deze parameter opgeeft, wordt de zoomfactor geforceerd naar de opgegeven waarde. Standaard is `13`. Mogelijke waarden zijn tussen `1` en `20`. De zoomfactor kan ook worden ingesteld via de kaart zelf.
-
-### Voorbeelden
-
-## Alleen de getroute.php
-Als je alleen de getroute.php oproept in een webbrowser, zonder parameters, wordt de kaart weergegeven met de huidige locatie van de gebruiker (indien beschikbaar) of met een fallback naar Amsterdam.
-```
-http://localhost/getroute.php
+### 3. Configure API keys
+Copy `example-config.js` to `config.js` and fill in your keys:
+```js
+const config = {
+    thunderforestApiKey: "YOUR_THUNDERFOREST_API_KEY",
+    tracestrackApiKey: "YOUR_TRACESTRACK_API_KEY",
+    openRouteServiceApiKey: "YOUR_OPENROUTESERVICE_API_KEY"
+};
 ```
 
-## Een Route.
-Een voorbeeld-URL om een route van Amsterdam naar Rotterdam weer te geven met de topografische kaartlaag en het fietsprofiel:
+### 4. Open the application
+Navigate to `getroute.php` in your browser and add URL parameters as needed:
 ```
-http://localhost/getroute.php?route=[{"point":"Amsterdam","text":"Startpunt"},{"point":"Rotterdam","text":"Eindpunt"}]&layer=topo&profile=cycling-regular
-```
-
-## Locatie(s)
-Een voorbeeld van een kaart met een locatie:
-```
-http://localhost/getroute.php?location=[{"point":"Utrecht","text":"Bezienswaardigheid"}]
+https://yourdomain.com/getroute.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
 ```
 
-## Een route met een locatie
+For multiple routes, use `multiroute.php` with repeated `route` parameters:
 ```
-http://localhost/getroute.php?route=[{"point":"Amsterdam","text":"Startpunt"},{"point":"Rotterdam","text":"Eindpunt"}]&location=[{"point":"Utrecht","text":"Bezienswaardigheid"}]
+https://yourdomain.com/multiroute.php?route=[...]&route=[...]
 ```
 
-## Externe afhankelijkheden
+---
 
-- **Leaflet.js**: Voor kaartweergave.
-- **Tracestrack API**: Voor topografische kaartlagen. (API Key vereist)
-- **OpenRouteService API**: Voor routeberekeningen. (API Key vereist)
-- **Thunderforest API**: Voor extra kaartlagen. (API Key vereist)
-- **Nominatim API**: Voor geocodering van locaties.
+## URL parameters
 
-## Licentie
-Dit project is gelicentieerd onder de MIT-licentie:
+### `route`
+JSON array of route points. Required for drawing a route.
 
-Copyright © Richard, Webwings 2025 
+```json
+[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]
+```
 
-Hierbij wordt gratis toestemming verleend aan iedereen die een kopie van deze software en bijbehorende documentatiebestanden (de "Software") ontvangt, om zonder beperking in de Software te handelen, inclusief maar niet beperkt tot het gebruiksrecht, het kopieerrecht, het wijzigingsrecht, het samenvoegingsrecht, het publicatierecht, het distributierecht, het sublicentierecht en/of het verkooprecht van kopieën van de Software, onder de volgende voorwaarden:
+### `location`
+JSON array of standalone location markers. Same format as `route`.
 
-De bovenstaande copyrightvermelding en deze toestemmingsverklaring moeten worden opgenomen in alle kopieën of substantiële delen van de Software.
+```json
+[{"point":"Utrecht","text":"Point of interest"}]
+```
 
-DE SOFTWARE WORDT GELEVERD "ZOALS HET IS", ZONDER ENIGE GARANTIE, UITDRUKKELIJK OF IMPLICIET, INCLUSIEF MAAR NIET BEPERKT TOT DE GARANTIES VAN VERKOOPBAARHEID, GESCHIKTHEID VOOR EEN BEPAALD DOEL EN NIET-INBREUK. IN GEEN GEVAL ZULLEN DE AUTEURS OF COPYRIGHTHOUDERS AANSPRAKELIJK ZIJN VOOR ENIGE CLAIM, SCHADE OF ANDERE AANSPRAKELIJKHEID, HETZIJ IN EEN ACTIE VAN CONTRACT, ONRECHTMATIGE DAAD OF ANDERSZINS, VOORTKOMEND UIT, UIT OF IN VERBAND MET DE SOFTWARE OF HET GEBRUIK OF ANDERE HANDELINGEN IN DE SOFTWARE.
+### `layer`
+Map tile layer. Options:
+
+| Value | Description |
+|---|---|
+| *(default)* | OpenStreetMap standard layer |
+| `topo` | Tracestrack topographic layer *(API key required)* |
+| `cycle` | Thunderforest cycling layer *(API key required)* |
+| `transport` | Thunderforest transport layer *(API key required)* |
+
+### `section`
+Set to `true` to show per-segment distance and travel time in waypoint popups. Default: `false`.
+
+### `profile`
+OpenRouteService routing profile. Options:
+
+| Value | Description |
+|---|---|
+| `driving-car` | Car routing *(default)* |
+| `cycling-regular` | Cycling |
+| `cycling-road` | Road cycling |
+| `cycling-mountain` | Mountain biking |
+| `cycling-electric` | E-bike |
+| `foot-hiking` | Hiking |
+| `foot-walking` | Walking (footpath focus) |
+| `wheelchair` | Wheelchair accessible |
+
+### `color`
+JSON array of one or more CSS colour strings. Multiple colours rotate per segment.
+
+```json
+["navy", "orange"]
+```
+
+### `zoom`
+Integer zoom level (1–20). Overrides the automatic fit-to-bounds behaviour.
+
+---
+
+## Example URLs
+
+**Map only (current location or Amsterdam fallback):**
+```
+https://yourdomain.com/getroute.php
+```
+
+**Single route with topo layer and cycling profile:**
+```
+https://yourdomain.com/getroute.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&layer=topo&profile=cycling-regular
+```
+
+**Standalone location marker:**
+```
+https://yourdomain.com/getroute.php?location=[{"point":"Utrecht","text":"Point of interest"}]
+```
+
+**Route combined with a location marker:**
+```
+https://yourdomain.com/getroute.php?route=[{"point":"Amsterdam","text":"Start"},{"point":"Rotterdam","text":"End"}]&location=[{"point":"Utrecht","text":"Point of interest"}]
+```
+
+**Multiple routes (multiroute.php):**
+```
+https://yourdomain.com/multiroute.php?route=[{"point":"Amsterdam"},{"point":"Utrecht"}]&route=[{"point":"Rotterdam"},{"point":"Den Haag"}]
+```
+
+---
+
+## External dependencies
+
+| Library / API | Purpose | API key required |
+|---|---|---|
+| [Leaflet.js](https://leafletjs.com/) | Map rendering | No |
+| [OpenStreetMap](https://www.openstreetmap.org/) | Default tile layer | No |
+| [Nominatim](https://nominatim.org/) | Geocoding (address → coordinates) | No |
+| [OpenRouteService](https://openrouteservice.org/) | Route calculation | Yes (free tier available) |
+| [Tracestrack](https://tracestrack.com/) | Topographic tile layer | Yes (free tier available) |
+| [Thunderforest](https://www.thunderforest.com/) | Cycling/transport tile layers | Yes (free tier available) |
+
+---
+
+## Changelog
+
+| Date | Change |
+|---|---|
+| 2025 | Initial release |
+| 2026-06-13 | All code, comments, and UI strings translated to English |
+| 2026-06-13 | Added `mapicons.html` — searchable visual reference for all 854 map icons |
+| 2026-06-13 | Added `differences.md` — detailed comparison between `getroute.php` and `multiroute.php` |
+
+---
+
+## Licence
+
+This project is licensed under the MIT Licence.
+
+Copyright © Richard, Webwings 2025
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

@@ -1,20 +1,37 @@
+"""
+openroute.py — Route URL generator for Webwings getroute / multiroute
+
+Prompts the user to enter one or more addresses, then constructs a
+URL for multiroute.php and opens it in the default web browser.
+
+Libraries used:
+    json        - Serialise route point data to JSON for the query string
+    webbrowser  - Open the generated URL in the default browser
+    urllib.parse - URL-encode the query string parameters
+"""
+
 import json
 import webbrowser
 from urllib.parse import urlencode
 
+
 def main():
-    mydomain = "mydomain.url"                                # Geef hier je domainnaam op.
-    base_url = "https://" + mydomain + "/multiroute.php"     # Volledige URL naar multiroute.php
+    """
+    Main entry point. Collects addresses interactively, builds the route URL,
+    and opens it in the browser.
+    """
+    mydomain = "mydomain.url"                               # Replace with your domain name
+    base_url = "https://" + mydomain + "/multiroute.php"   # Full URL to multiroute.php
     locations = []
 
-    print("Voer adressen in. Laat leeg en druk op Enter om te stoppen.")
+    print("Enter addresses one by one. Leave blank and press Enter to stop.")
     while True:
-        address = input("Adres (of leeg om te stoppen): ").strip()
+        address = input("Address (or leave blank to stop): ").strip()
         if not address:
             break
 
-        text = input("Optionele tekst voor dit adres: ").strip()
-        icon = input("Optionele icoon-URL voor dit adres: ").strip()
+        text = input("Optional popup text for this address: ").strip()
+        icon = input("Optional icon URL for this address: ").strip()
 
         location = {"point": address}
         if text:
@@ -25,19 +42,20 @@ def main():
         locations.append(location)
 
     if not locations:
-        print("Geen locaties ingevoerd. Programma wordt afgesloten.")
+        print("No locations entered. Exiting.")
         return
 
-    # Genereer de URL
+    # Build the query string and full URL
     query_params = {
         "route": json.dumps(locations)
     }
     full_url = f"{base_url}?{urlencode(query_params)}"
 
-    print(f"URL gegenereerd: {full_url}")
+    print(f"Generated URL: {full_url}")
 
-    # Open de URL in de standaard webbrowser
+    # Open the URL in the default web browser
     webbrowser.open(full_url)
+
 
 if __name__ == "__main__":
     main()

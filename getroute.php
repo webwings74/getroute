@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <!-- (c) Webwings 2025 -->
    <meta charset="UTF-8">
@@ -30,43 +30,48 @@
 </head>
 <body>
 
-<!-- Totale afstand en tijd container -->
+<!-- Total distance and time container -->
 <div id="duration-container"></div>
 
-<!-- Kaart -->
+<!-- Map -->
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="config.js"></script>
 <script>
-    // Gebruik de geladen API-sleutels
+    // Load API keys from config
     const thunderforestApiKey = config.thunderforestApiKey;
     const tracestrackApiKey = config.tracestrackApiKey;
     const openRouteServiceApiKey = config.openRouteServiceApiKey;
 
-    // Standaard icoon-URL's en afmetingen
+    // Default icon URLs and dimensions
     const defaultIconUrl = 'https://code.webwings.nl/pinpoint.png';
     const startIconUrl = 'https://code.webwings.nl/start.png';
     const endIconUrl = 'https://code.webwings.nl/stop.png';
-    const iconWidth = 32; // Breedte van de iconen
-    const iconHeight = 37; // Hoogte van de iconen
-    const popupOffset = -35; // Offset om de popup hoger te plaatsen
+    const iconWidth = 32;  // Icon width in pixels
+    const iconHeight = 37; // Icon height in pixels
+    const popupOffset = -35; // Vertical offset to position the popup above the marker
 
+    /**
+     * Parses the ?route= URL parameter and returns an array of route points.
+     * Each point contains a location string, optional popup text, and optional icon URL.
+     * Returns an empty array if the parameter is missing or invalid.
+     */
     function getRouteFromQuery() {
         const urlParams = new URLSearchParams(window.location.search);
         const routeParam = urlParams.get("route");
         if (!routeParam) {
-            return []; // Geen alert meer, gewoon een lege array retourneren
+            return []; // No route parameter present, return empty array silently
         }
 
         try {
             const route = JSON.parse(routeParam);
             if (!Array.isArray(route)) {
-                throw new Error("Route moet een array zijn.");
+                throw new Error("Route must be an array.");
             }
             return route.map(point => {
                 if (!point.point) {
-                    throw new Error("Elk punt moet een 'point' eigenschap hebben.");
+                    throw new Error("Each point must have a 'point' property.");
                 }
                 return {
                     point: point.point,
@@ -75,26 +80,31 @@
                 };
             });
         } catch (error) {
-            alert("Fout bij het verwerken van de route: " + error.message);
+            alert("Error processing route: " + error.message);
             return [];
         }
     }
 
+    /**
+     * Parses the ?location= URL parameter and returns an array of standalone location points.
+     * Each point contains a location string, optional popup text, and optional icon URL.
+     * Returns an empty array if the parameter is missing or invalid.
+     */
     function getLocationsFromQuery() {
         const urlParams = new URLSearchParams(window.location.search);
         const locationParam = urlParams.get("location");
         if (!locationParam) {
-            return []; // Geen locaties opgegeven, retourneer een lege array
+            return []; // No location parameter present, return empty array
         }
 
         try {
             const locations = JSON.parse(locationParam);
             if (!Array.isArray(locations)) {
-                throw new Error("Locaties moeten een array zijn.");
+                throw new Error("Locations must be an array.");
             }
             return locations.map(point => {
                 if (!point.point) {
-                    throw new Error("Elk punt moet een 'point' eigenschap hebben.");
+                    throw new Error("Each point must have a 'point' property.");
                 }
                 return {
                     point: point.point,
@@ -103,7 +113,7 @@
                 };
             });
         } catch (error) {
-            alert("Fout bij het verwerken van de locaties: " + error.message);
+            alert("Error processing locations: " + error.message);
             return [];
         }
     }
@@ -120,14 +130,14 @@
         if (zoomParam) {
             requestedZoom = parseInt(zoomParam, 10);
             if (isNaN(requestedZoom)) {
-                console.warn("Ongeldige zoomwaarde opgegeven. De waarde wordt genegeerd.");
+                console.warn("Invalid zoom value provided. Value will be ignored.");
                 requestedZoom = null;
             }
         }
 
         const promises = [];
 
-        // Verwerk locaties
+        // Process standalone locations
         if (locations.length > 0) {
             promises.push(
                 new Promise((resolve) => {
@@ -135,7 +145,7 @@
                         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location.point)}`;
                         return fetch(url).then(response => {
                             if (!response.ok) {
-                                throw new Error(`Fout bij ophalen locatie: ${response.status}`);
+                                throw new Error(`Error fetching location: ${response.status}`);
                             }
                             return response.json();
                         });
@@ -172,36 +182,36 @@
 
                                     bounds.extend([coord.lat, coord.lon]);
                                 } else {
-                                    console.error("Locatie niet gevonden: " + locations[index].point);
+                                    console.error("Location not found: " + locations[index].point);
                                 }
                             });
                             resolve();
                         })
                         .catch(error => {
-                            console.error("Fout bij het ophalen van locatiegegevens:", error);
+                            console.error("Error fetching location data:", error);
                             resolve();
                         });
                 })
             );
         }
 
-        // Verwerk routes
+        // Process route
         if (route.length > 0) {
             promises.push(plotRoutes(route, section, profile));
         }
 
-        // Wacht tot alle locaties en routes zijn verwerkt
+        // Wait for all locations and routes to finish processing
         Promise.all(promises).then(() => {
             if (requestedZoom !== null) {
-                // Forceer de zoom naar het opgegeven niveau
+                // Force the map to the requested zoom level
                 map.setView(bounds.getCenter(), requestedZoom);
             } else {
-                // Zoom naar de bounds als er geen expliciete zoomwaarde is
+                // Fit the map to the bounds of all markers and route segments
                 map.fitBounds(bounds);
             }
         });
 
-        // Als er geen route of locaties zijn, probeer huidige locatie te gebruiken
+        // If no route or locations are provided, try to use the browser's geolocation
         if (route.length === 0 && locations.length === 0) {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -209,33 +219,37 @@
                         const { latitude, longitude } = position.coords;
                         map.setView([latitude, longitude], 14);
 
-                        // Voeg een blauw cirkeltje toe op de huidige locatie
+                        // Show a blue circle marker at the current location
                         L.circle([latitude, longitude], {
                             color: 'blue',
                             fillColor: '#3f83f8',
                             fillOpacity: 0.5,
                             radius: 50
-                        }).addTo(map).bindPopup("Uw huidige locatie").openPopup();
+                        }).addTo(map).bindPopup("Your current location").openPopup();
                     },
                     error => {
-                        console.error("Fout bij ophalen van huidige locatie:", error);
-                        // Fallback naar Amsterdam
+                        console.error("Error retrieving current location:", error);
+                        // Fall back to Amsterdam
                         fallbackToAmsterdam();
                     }
                 );
             } else {
-                console.warn("Geolocatie niet ondersteund door de browser.");
-                // Fallback naar Amsterdam
+                console.warn("Geolocation is not supported by this browser.");
+                // Fall back to Amsterdam
                 fallbackToAmsterdam();
             }
         }
     });
 
+    /**
+     * Falls back to Amsterdam when geolocation is unavailable or fails.
+     * Centers the map on Amsterdam and shows a marker.
+     */
     function fallbackToAmsterdam() {
         const amsterdamCoords = [52.3676, 4.9041];
         map.setView(amsterdamCoords, 12);
 
-        // Voeg een blauw cirkeltje toe op Amsterdam
+        // Show a blue circle marker at Amsterdam
         L.circle(amsterdamCoords, {
             color: 'blue',
             fillColor: '#3f83f8',
@@ -246,7 +260,7 @@
 
     var map = L.map('map').setView([52.3676, 4.9041], 10);
 
-    // Kies de kaartlaag op basis van de 'layer' parameter
+    // Select the tile layer based on the ?layer= URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const layer = urlParams.get("layer");
 
@@ -266,7 +280,7 @@
             tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
             break;
         default:
-            tileLayerUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"; // Default OSM
+            tileLayerUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"; // Default OSM layer
             tileLayerAttribution = "&copy; OpenStreetMap contributors";
             break;
     }
@@ -275,21 +289,21 @@
         attribution: tileLayerAttribution
     }).addTo(map);
 
-    // Controleer of er een ?zoom= parameter is opgegeven
+    // Check for an optional ?zoom= URL parameter
     const zoomParam = urlParams.get("zoom");
     let requestedZoom = null;
 
     if (zoomParam) {
         requestedZoom = parseInt(zoomParam, 10);
         if (isNaN(requestedZoom)) {
-            console.warn("Ongeldige zoomwaarde opgegeven. De waarde wordt genegeerd.");
+            console.warn("Invalid zoom value provided. Value will be ignored.");
             requestedZoom = null;
         }
     }
 
-    // Verwerk de ?color= parameter
+    // Parse the ?color= parameter — can be a JSON array of color strings
     const colorParam = urlParams.get("color");
-    let colors = ['navy']; // Standaard kleuren kan een array zijn per segment.
+    let colors = ['navy']; // Default color; can be an array for per-segment colors
 
     if (colorParam) {
         try {
@@ -297,26 +311,34 @@
             if (Array.isArray(parsedColors) && parsedColors.every(color => typeof color === 'string')) {
                 colors = parsedColors;
             } else {
-                console.warn("Ongeldige kleurparameter opgegeven. De standaardkleuren worden gebruikt.");
+                console.warn("Invalid color parameter. Default colors will be used.");
             }
         } catch (error) {
-            console.warn("Fout bij het verwerken van de kleurparameter. De standaardkleuren worden gebruikt.");
+            console.warn("Error parsing color parameter. Default colors will be used.");
         }
     }
 
-    // Standaard kleuren
-    // const colors = ['navy', 'orange']; // Standaard kleuren per segment
+    // Example of multi-segment colors (uncomment to use):
+    // const colors = ['navy', 'orange'];
 
     let totalDistance = 0;
     let totalDuration = 0;
-    let bounds = L.latLngBounds(); // Om de volledige route te berekenen
+    let bounds = L.latLngBounds(); // Tracks the bounding box of all rendered elements
 
+    /**
+     * Geocodes all route points via Nominatim, then draws route segments between them.
+     * Updates the duration/distance overlay after all segments are rendered.
+     *
+     * @param {Array} route   - Array of route point objects (point, text, icon)
+     * @param {boolean} section - Whether to show per-segment distance/time in popups
+     * @param {string} profile  - OpenRouteService routing profile (e.g. 'driving-car')
+     */
     function plotRoutes(route, section, profile) {
         const promises = route.map(point => {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(point.point)}`;
             return fetch(url).then(response => {
                 if (!response.ok) {
-                    throw new Error(`Fout bij ophalen locatie: ${response.status}`);
+                    throw new Error(`Error fetching location: ${response.status}`);
                 }
                 return response.json();
             });
@@ -329,12 +351,12 @@
                         return {
                             lat: parseFloat(location[0].lat),
                             lon: parseFloat(location[0].lon),
-                            displayName: location[0].display_name.split(",")[0], // Alleen de naam
+                            displayName: location[0].display_name.split(",")[0], // Use only the primary name
                             text: route[index].text,
                             icon: route[index].icon
                         };
                     } else {
-                        throw new Error("Locatie niet gevonden: " + route[index].point);
+                        throw new Error("Location not found: " + route[index].point);
                     }
                 });
 
@@ -347,21 +369,21 @@
                     routePromises.push(plotRoute(start, end, color, section, profile, i === 0, i === coordinates.length - 2));
                 }
 
-                // Pas de kaart aan na het plotten van routes en locaties
+                // Fit the map after all segments and locations have been rendered
                 Promise.all(routePromises).then(() => {
                     if (requestedZoom !== null) {
-                        // Forceer de zoom naar het opgegeven niveau
+                        // Force the map to the requested zoom level
                         map.setView(bounds.getCenter(), requestedZoom);
                     } else {
-                        // Zoom naar de bounds als er geen expliciete zoomwaarde is
+                        // Fit the map to all rendered elements
                         map.fitBounds(bounds);
                     }
 
-                    // Update de container met de totale afstand, tijd en aankomsttijd
+                    // Update the overlay with total distance, travel time, and estimated arrival
                     const totalDurationMinutes = totalDuration / 60;
                     const totalHours = Math.floor(totalDurationMinutes / 60);
                     const totalMinutes = Math.floor(totalDurationMinutes % 60).toString().padStart(2, '0');
-                    const totalDurationText = `${totalHours} uur ${totalMinutes} min`;
+                    const totalDurationText = `${totalHours} hr ${totalMinutes} min`;
                     const totalDistanceKm = (totalDistance / 1000).toFixed(2);
 
                     const now = new Date();
@@ -372,19 +394,31 @@
 
                     const durationContainer = document.getElementById("duration-container");
                     durationContainer.innerHTML = `
-                        <div><strong>Totaalafstand:</strong> ${totalDistanceKm} km</div>
-                        <div><strong>Rijtijd:</strong> ${totalDurationText}</div>
-                        <div><strong>Aankomsttijd:</strong> ${arrivalText}</div>
+                        <div><strong>Total distance:</strong> ${totalDistanceKm} km</div>
+                        <div><strong>Travel time:</strong> ${totalDurationText}</div>
+                        <div><strong>Estimated arrival:</strong> ${arrivalText}</div>
                     `;
                     durationContainer.style.display = "block";
                 });
             })
-            .catch(error => console.error("Fout bij het ophalen van locatiegegevens:", error));
+            .catch(error => console.error("Error fetching location data:", error));
     }
 
+    /**
+     * Fetches a route segment from OpenRouteService and draws it on the map.
+     * Adds start and end markers with popups. Optionally shows per-segment stats.
+     *
+     * @param {Object} start          - Start coordinate object (lat, lon, text, icon, displayName)
+     * @param {Object} end            - End coordinate object
+     * @param {string} color          - Polyline color
+     * @param {boolean} section       - Whether to show segment distance/time in the end marker popup
+     * @param {string} profile        - OpenRouteService routing profile
+     * @param {boolean} isFirstSegment - Whether this is the first segment (shows start marker)
+     * @param {boolean} isLastSegment  - Whether this is the last segment (shows end/finish marker)
+     */
     function plotRoute(start, end, color, section, profile, isFirstSegment, isLastSegment) {
         return new Promise((resolve, reject) => {
-            // Startmarker: gebruik start.icon als deze is opgegeven, anders startIconUrl 
+            // Start marker: use custom icon if provided, otherwise use start or default icon
             const startIcon = L.icon({
                 iconUrl: start.icon ? start.icon : (isFirstSegment ? startIconUrl : defaultIconUrl),
                 iconSize: [iconWidth, iconHeight],
@@ -392,7 +426,7 @@
                 popupAnchor: [0, popupOffset]
             });
 
-            // Eindmarker: gebruik end.icon als deze is opgegeven, anders endIconUrl of defaultIconUrl
+            // End marker: use custom icon if provided, otherwise use end or default icon
             const endIcon = L.icon({
                 iconUrl: end.icon || (isLastSegment ? endIconUrl : defaultIconUrl),
                 iconSize: [iconWidth, iconHeight],
@@ -405,7 +439,7 @@
             fetch(routeUrl)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP-fout! Status: ${response.status}`);
+                        throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
@@ -423,10 +457,10 @@
                     totalDistance += distance;
                     totalDuration += duration;
 
-                    // Voeg de startmarker toe als het het eerste segment is
+                    // Add the start marker on the first segment only
                     if (isFirstSegment) {
                         const startMarker = L.marker([start.lat, start.lon], { icon: startIcon }).addTo(map);
-                        startMarker.bindPopup(start.text || `Startpunt: ${start.displayName}`);
+                        startMarker.bindPopup(start.text || `Start: ${start.displayName}`);
                         startMarker.on('mouseover', function () {
                             this.openPopup();
                         });
@@ -435,15 +469,15 @@
                         });
                     }
 
-                    // Voeg de eindmarker toe
-                    let endPopupText = end.text || `Tussenpunt: ${end.displayName}`;
+                    // Build the end/waypoint marker popup text
+                    let endPopupText = end.text || `Waypoint: ${end.displayName}`;
                     if (section) {
-                        const distanceKm = (distance / 1000).toFixed(2); // Afstand in kilometers
-                        const durationMinutes = Math.round(duration / 60); // Tijd in minuten
+                        const distanceKm = (distance / 1000).toFixed(2); // Distance in kilometres
+                        const durationMinutes = Math.round(duration / 60); // Duration in minutes
                         endPopupText += `
                             <br><hr>
-                            <strong>Tussenafstand:</strong> ${distanceKm} km<br>
-                            <strong>Tussentijd:</strong> ${durationMinutes} min
+                            <strong>Segment distance:</strong> ${distanceKm} km<br>
+                            <strong>Segment time:</strong> ${durationMinutes} min
                         `;
                     }
 
@@ -459,7 +493,7 @@
                     resolve();
                 })
                 .catch(error => {
-                    console.error("Fout bij het ophalen van de route:", error);
+                    console.error("Error fetching route:", error);
                     reject(error);
                 });
         });

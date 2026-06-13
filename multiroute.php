@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
     <!-- (c) Webwings 2025 -->
    <meta charset="UTF-8">
@@ -30,43 +30,47 @@
 </head>
 <body>
 
-<!-- Totale afstand en tijd container -->
-<!-- div id="duration-container"></div>
+<!-- Total distance and time container (used for single-route mode only) -->
+<!-- div id="duration-container"></div -->
 
-<!-- Kaart -->
+<!-- Map -->
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="config.js"></script>
 <script>
-    // API-sleutels
+    // Load API keys from config
     const thunderforestApiKey = config.thunderforestApiKey;
     const tracestrackApiKey = config.tracestrackApiKey;
     const openRouteServiceApiKey = config.openRouteServiceApiKey;
 
-    // Standaard icoon-URL's en afmetingen
+    // Default icon URLs and dimensions
     const defaultIconUrl = 'https://code.webwings.nl/pinpoint.png';
     const startIconUrl = 'https://code.webwings.nl/start.png';
     const endIconUrl = 'https://code.webwings.nl/stop.png';
-    const iconWidth = 32; // Breedte van de iconen
-    const iconHeight = 37; // Hoogte van de iconen
-    const popupOffset = -35; // Offset om de popup hoger te plaatsen
+    const iconWidth = 32;  // Icon width in pixels
+    const iconHeight = 37; // Icon height in pixels
+    const popupOffset = -35; // Vertical offset to position the popup above the marker
 
+    /**
+     * Legacy single-route parser — kept for reference but not used in multiroute.php.
+     * Use getRoutesFromQuery() instead.
+     */
     function getRouteFromQuery() {
         const urlParams = new URLSearchParams(window.location.search);
         const routeParam = urlParams.get("route");
         if (!routeParam) {
-            return []; // Geen alert meer, gewoon een lege array retourneren
+            return []; // No route parameter present, return empty array silently
         }
 
         try {
             const route = JSON.parse(routeParam);
             if (!Array.isArray(route)) {
-                throw new Error("Route moet een array zijn.");
+                throw new Error("Route must be an array.");
             }
             return route.map(point => {
                 if (!point.point) {
-                    throw new Error("Elk punt moet een 'point' eigenschap hebben.");
+                    throw new Error("Each point must have a 'point' property.");
                 }
                 return {
                     point: point.point,
@@ -75,27 +79,32 @@
                 };
             });
         } catch (error) {
-            alert("Fout bij het verwerken van de route: " + error.message);
+            alert("Error processing route: " + error.message);
             return [];
         }
     }
 
+    /**
+     * Parses all ?route= URL parameters and returns an array of route arrays.
+     * Supports multiple routes by repeating the route parameter in the query string.
+     * Each route is an array of point objects (point, text, icon).
+     */
     function getRoutesFromQuery() {
         const urlParams = new URLSearchParams(window.location.search);
         const routes = [];
 
-        // Verzamel alle 'route' parameters
+        // Collect all 'route' parameters from the query string
         urlParams.forEach((value, key) => {
             if (key === "route") {
                 try {
                     const route = JSON.parse(value);
                     if (!Array.isArray(route)) {
-                        throw new Error("Route moet een array zijn.");
+                        throw new Error("Route must be an array.");
                     }
                     routes.push(
                         route.map(point => {
                             if (!point.point) {
-                                throw new Error("Elk punt moet een 'point' eigenschap hebben.");
+                                throw new Error("Each point must have a 'point' property.");
                             }
                             return {
                                 point: point.point,
@@ -105,7 +114,7 @@
                         })
                     );
                 } catch (error) {
-                    console.error("Fout bij het verwerken van een route:", error.message);
+                    console.error("Error processing route:", error.message);
                 }
             }
         });
@@ -113,21 +122,26 @@
         return routes;
     }
 
+    /**
+     * Parses the ?location= URL parameter and returns an array of standalone location points.
+     * Each point contains a location string, optional popup text, and optional icon URL.
+     * Returns an empty array if the parameter is missing or invalid.
+     */
     function getLocationsFromQuery() {
         const urlParams = new URLSearchParams(window.location.search);
         const locationParam = urlParams.get("location");
         if (!locationParam) {
-            return []; // Geen locaties opgegeven, retourneer een lege array
+            return []; // No location parameter present, return empty array
         }
 
         try {
             const locations = JSON.parse(locationParam);
             if (!Array.isArray(locations)) {
-                throw new Error("Locaties moeten een array zijn.");
+                throw new Error("Locations must be an array.");
             }
             return locations.map(point => {
                 if (!point.point) {
-                    throw new Error("Elk punt moet een 'point' eigenschap hebben.");
+                    throw new Error("Each point must have a 'point' property.");
                 }
                 return {
                     point: point.point,
@@ -136,16 +150,16 @@
                 };
             });
         } catch (error) {
-            alert("Fout bij het verwerken van de locaties: " + error.message);
+            alert("Error processing locations: " + error.message);
             return [];
         }
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-        // Reset de notFoundLocations array bij elke laadactie
+        // Reset the not-found locations list on each page load
         notFoundLocations = [];
-        
-        const routes = getRoutesFromQuery(); // Haal alle routes op
+
+        const routes = getRoutesFromQuery(); // Retrieve all routes from the query string
         const locations = getLocationsFromQuery();
         const urlParams = new URLSearchParams(window.location.search);
         const section = urlParams.get("section") === "true";
@@ -156,20 +170,20 @@
         if (zoomParam) {
             requestedZoom = parseInt(zoomParam, 10);
             if (isNaN(requestedZoom)) {
-                console.warn("Ongeldige zoomwaarde opgegeven. De waarde wordt genegeerd.");
+                console.warn("Invalid zoom value provided. Value will be ignored.");
                 requestedZoom = null;
             }
         }
 
         const promises = [];
 
-        // Controleer het aantal routes en verwijder de container indien nodig
+        // Remove the duration container from the DOM when multiple routes are shown
         const durationContainer = document.getElementById("duration-container");
         if (durationContainer && routes.length > 1) {
-            durationContainer.remove(); // Verwijder de container volledig uit de DOM
+            durationContainer.remove();
         }
 
-        // Verwerk locaties
+        // Process standalone locations
         if (locations.length > 0) {
             promises.push(
                 new Promise((resolve) => {
@@ -177,7 +191,7 @@
                         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location.point)}`;
                         return fetch(url).then(response => {
                             if (!response.ok) {
-                                throw new Error(`Fout bij ophalen locatie: ${response.status}`);
+                                throw new Error(`Error fetching location: ${response.status}`);
                             }
                             return response.json();
                         });
@@ -214,49 +228,49 @@
 
                                     bounds.extend([coord.lat, coord.lon]);
                                 } else {
-                                    console.error("Locatie niet gevonden: " + locations[index].point);
+                                    console.error("Location not found: " + locations[index].point);
                                     notFoundLocations.push(locations[index].point);
                                 }
                             });
                             resolve();
                         })
                         .catch(error => {
-                            console.error("Fout bij het ophalen van locatiegegevens:", error);
+                            console.error("Error fetching location data:", error);
                             resolve();
                         });
                 })
             );
         }
 
-        // Verwerk routes
+        // Process each route, passing its index for per-route color selection
         routes.forEach((route, index) => {
             if (route.length > 0) {
-                promises.push(plotRoutes(route, section, profile, index)); // Geef de route-index door
+                promises.push(plotRoutes(route, section, profile, index));
             }
         });
 
-        // Wacht tot alle locaties en routes zijn verwerkt
+        // Wait for all locations and routes to finish, then fit the map
         Promise.all(promises).then(() => {
-            // Toon popup met niet-gevonden locaties indien van toepassing
+            // Alert the user about any locations that could not be found
             if (notFoundLocations.length > 0) {
                 const locationList = notFoundLocations.map(loc => `• ${loc}`).join('\n');
-                alert(`De volgende locatie(s) konden niet worden gevonden:\n\n${locationList}`);
+                alert(`The following location(s) could not be found:\n\n${locationList}`);
             }
-            
+
             if (bounds.isValid()) {
                 if (requestedZoom !== null) {
-                    // Forceer de zoom naar het opgegeven niveau
+                    // Force the map to the requested zoom level
                     map.setView(bounds.getCenter(), requestedZoom);
                 } else {
-                    // Zoom naar de bounds als er geen expliciete zoomwaarde is
+                    // Fit the map to the bounds of all rendered elements
                     map.fitBounds(bounds);
                 }
             } else {
-                console.warn("Bounds zijn niet geldig. Er zijn mogelijk geen geldige coördinaten opgehaald.");
+                console.warn("Bounds are not valid. No valid coordinates may have been retrieved.");
             }
         });
 
-        // Als er geen route of locaties zijn, probeer huidige locatie te gebruiken
+        // If no routes or locations are provided, try to use the browser's geolocation
         if (routes.length === 0 && locations.length === 0) {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
@@ -264,23 +278,23 @@
                         const { latitude, longitude } = position.coords;
                         map.setView([latitude, longitude], 14);
 
-                        // Voeg een blauw cirkeltje toe op de huidige locatie
+                        // Show a blue circle marker at the current location
                         L.circle([latitude, longitude], {
                             color: 'blue',
                             fillColor: '#3f83f8',
                             fillOpacity: 0.5,
                             radius: 50
-                        }).addTo(map).bindPopup("Uw huidige locatie").openPopup();
+                        }).addTo(map).bindPopup("Your current location").openPopup();
                     },
                     error => {
-                        console.error("Fout bij ophalen van huidige locatie:", error);
-                        // Fallback naar Amsterdam
+                        console.error("Error retrieving current location:", error);
+                        // Fall back to Amsterdam
                         fallbackToAmsterdam();
                     }
                 );
             } else {
-                console.warn("Geolocatie niet ondersteund door de browser.");
-                // Fallback naar Amsterdam
+                console.warn("Geolocation is not supported by this browser.");
+                // Fall back to Amsterdam
                 fallbackToAmsterdam();
             }
         }
@@ -288,14 +302,18 @@
         console.log("Bounds:", bounds);
         console.log("Routes:", routes);
         console.log("Locations:", locations);
-        console.log("Bestaat durationContainer?", !!document.getElementById("duration-container"));
+        console.log("Duration container present?", !!document.getElementById("duration-container"));
     });
 
+    /**
+     * Falls back to Amsterdam when geolocation is unavailable or fails.
+     * Centers the map on Amsterdam and shows a marker.
+     */
     function fallbackToAmsterdam() {
         const amsterdamCoords = [52.3676, 4.9041];
         map.setView(amsterdamCoords, 12);
 
-        // Voeg een blauw cirkeltje toe op Amsterdam
+        // Show a blue circle marker at Amsterdam
         L.circle(amsterdamCoords, {
             color: 'blue',
             fillColor: '#3f83f8',
@@ -306,7 +324,7 @@
 
     var map = L.map('map').setView([52.3676, 4.9041], 10);
 
-    // Kies de kaartlaag op basis van de 'layer' parameter
+    // Select the tile layer based on the ?layer= URL parameter
     const urlParams = new URLSearchParams(window.location.search);
     const layer = urlParams.get("layer");
 
@@ -326,7 +344,7 @@
             tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
             break;
         default:
-            tileLayerUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"; // Default OSM
+            tileLayerUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"; // Default OSM layer
             tileLayerAttribution = "&copy; OpenStreetMap contributors";
             break;
     }
@@ -335,19 +353,19 @@
         attribution: tileLayerAttribution
     }).addTo(map);
 
-    // Controleer of er een ?zoom= parameter is opgegeven
+    // Check for an optional ?zoom= URL parameter
     const zoomParam = urlParams.get("zoom");
     let requestedZoom = null;
 
     if (zoomParam) {
         requestedZoom = parseInt(zoomParam, 10);
         if (isNaN(requestedZoom)) {
-            console.warn("Ongeldige zoomwaarde opgegeven. De waarde wordt genegeerd.");
+            console.warn("Invalid zoom value provided. Value will be ignored.");
             requestedZoom = null;
         }
     }
 
-    // Verwerk de ?color= parameters (meerdere arrays mogelijk)
+    // Parse all ?color= parameters — one color array per route
     const colorParams = [];
     urlParams.forEach((value, key) => {
         if (key === "color") {
@@ -356,37 +374,53 @@
                 if (Array.isArray(parsedColors) && parsedColors.every(color => typeof color === 'string')) {
                     colorParams.push(parsedColors);
                 } else {
-                    console.warn("Ongeldige kleurparameter opgegeven. De standaardkleuren worden gebruikt.");
+                    console.warn("Invalid color parameter. Default colors will be used.");
                 }
             } catch (error) {
-                console.warn("Fout bij het verwerken van de kleurparameter. De standaardkleuren worden gebruikt.");
+                console.warn("Error parsing color parameter. Default colors will be used.");
             }
         }
     });
 
-    // Als er geen kleuren zijn opgegeven, gebruik een standaard kleurenarray
+    // Fall back to a default color array if no colors were specified
     if (colorParams.length === 0) {
-        // colorParams.push(['navy', 'orange', 'green', 'purple']);
-        colorParams.push(['navy']); // Standaard kleur Navy
+        // colorParams.push(['navy', 'orange', 'green', 'purple']); // Example multi-color default
+        colorParams.push(['navy']); // Default: navy
     }
 
-    // Functie om een kleur te krijgen voor een specifiek segment
+    /**
+     * Returns the color for a given route segment.
+     * Cycles through the color arrays and through colors within each array.
+     *
+     * @param {number} routeIndex   - Index of the route (0-based)
+     * @param {number} segmentIndex - Index of the segment within the route (0-based)
+     * @returns {string} CSS color string
+     */
     function getSegmentColor(routeIndex, segmentIndex) {
-        const colors = colorParams[routeIndex % colorParams.length]; // Cyclisch gebruik van kleurenarrays
-        return colors[segmentIndex % colors.length]; // Cyclisch gebruik van kleuren binnen een array
+        const colors = colorParams[routeIndex % colorParams.length]; // Cycle through color arrays per route
+        return colors[segmentIndex % colors.length]; // Cycle through colors within the array
     }
 
     let totalDistance = 0;
     let totalDuration = 0;
-    let bounds = L.latLngBounds(); // Om de volledige route te berekenen
-    let notFoundLocations = []; // Globale array om niet-gevonden locaties bij te houden
+    let bounds = L.latLngBounds(); // Tracks the bounding box of all rendered elements
+    let notFoundLocations = []; // Global list of location names that could not be geocoded
 
+    /**
+     * Geocodes all points in a route via Nominatim, pre-calculates total distance/duration,
+     * then draws each segment on the map.
+     *
+     * @param {Array} route      - Array of route point objects (point, text, icon)
+     * @param {boolean} section  - Whether to show per-segment stats in waypoint popups
+     * @param {string} profile   - OpenRouteService routing profile
+     * @param {number} routeIndex - Index of this route (used for color selection)
+     */
     function plotRoutes(route, section, profile, routeIndex) {
         const promises = route.map(point => {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(point.point)}`;
             return fetch(url).then(response => {
                 if (!response.ok) {
-                    throw new Error(`Fout bij ophalen locatie: ${response.status}`);
+                    throw new Error(`Error fetching location: ${response.status}`);
                 }
                 return response.json();
             });
@@ -396,7 +430,7 @@
             .then(locations => {
                 const coordinates = [];
                 const localNotFound = [];
-                
+
                 locations.forEach((location, index) => {
                     if (location.length > 0) {
                         coordinates.push({
@@ -407,25 +441,25 @@
                             icon: route[index].icon
                         });
                     } else {
-                        console.error("Locatie niet gevonden: " + route[index].point);
+                        console.error("Location not found: " + route[index].point);
                         localNotFound.push(route[index].point);
                         notFoundLocations.push(route[index].point);
                     }
                 });
-                
+
                 if (localNotFound.length > 0) {
-                    // Als er locaties niet gevonden zijn, gooi een error
-                    throw new Error("Sommige locaties niet gevonden: " + localNotFound.join(", "));
+                    // Abort rendering this route if any point could not be geocoded
+                    throw new Error("Some locations could not be found: " + localNotFound.join(", "));
                 }
 
-                // Bereken totale afstand en tijd voor deze specifieke route
+                // Pre-calculate total distance and duration for the start marker popup
                 calculateTotalRouteData(coordinates, profile)
                     .then(({ totalDuration, totalDistance }) => {
                         const routePromises = [];
                         for (let i = 0; i < coordinates.length - 1; i++) {
                             const start = coordinates[i];
                             const end = coordinates[i + 1];
-                            const color = getSegmentColor(routeIndex, i); // Haal de kleur op voor dit segment
+                            const color = getSegmentColor(routeIndex, i);
 
                             routePromises.push(plotRoute(start, end, color, section, profile, i === 0, i === coordinates.length - 2, totalDuration, totalDistance));
                         }
@@ -438,13 +472,29 @@
                             }
                         });
                     })
-                    .catch(error => console.error("Fout bij het berekenen van totale routegegevens:", error));
+                    .catch(error => console.error("Error calculating total route data:", error));
             })
-            .catch(error => console.error("Fout bij het ophalen van locatiegegevens:", error));
+            .catch(error => console.error("Error fetching location data:", error));
     }
 
+    /**
+     * Fetches a route segment from OpenRouteService and draws it on the map.
+     * On the first segment, adds a start marker showing total route distance and time.
+     * On all segments, adds an end/waypoint marker with optional per-segment stats.
+     *
+     * @param {Object} start           - Start coordinate object (lat, lon, text, icon, displayName)
+     * @param {Object} end             - End coordinate object
+     * @param {string} color           - Polyline color
+     * @param {boolean} section        - Whether to show segment distance/time in the end marker popup
+     * @param {string} profile         - OpenRouteService routing profile
+     * @param {boolean} isFirstSegment - Whether this is the first segment (shows start marker)
+     * @param {boolean} isLastSegment  - Whether this is the last segment (shows end/finish marker)
+     * @param {number} totalDuration   - Pre-calculated total route duration in seconds
+     * @param {number} totalDistance   - Pre-calculated total route distance in metres
+     */
     function plotRoute(start, end, color, section, profile, isFirstSegment, isLastSegment, totalDuration, totalDistance) {
         return new Promise((resolve, reject) => {
+            // Start marker: use custom icon if provided, otherwise use start or default icon
             const startIcon = L.icon({
                 iconUrl: start.icon ? start.icon : (isFirstSegment ? startIconUrl : defaultIconUrl),
                 iconSize: [iconWidth, iconHeight],
@@ -452,6 +502,7 @@
                 popupAnchor: [0, popupOffset]
             });
 
+            // End marker: use custom icon if provided, otherwise use end or default icon
             const endIcon = L.icon({
                 iconUrl: end.icon || (isLastSegment ? endIconUrl : defaultIconUrl),
                 iconSize: [iconWidth, iconHeight],
@@ -464,7 +515,7 @@
             fetch(routeUrl)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error(`HTTP-fout! Status: ${response.status}`);
+                        throw new Error(`HTTP error! Status: ${response.status}`);
                     }
                     return response.json();
                 })
@@ -479,21 +530,20 @@
                     const duration = routeData.features[0].properties.segments[0].duration;
                     const distance = routeData.features[0].properties.segments[0].distance;
 
-                    // Voeg de startmarker toe als het het eerste segment is
+                    // Add the start marker on the first segment only, showing total route stats
                     if (isFirstSegment) {
                         const startMarker = L.marker([start.lat, start.lon], { icon: startIcon }).addTo(map);
 
-                        // Bereken afstand en tijd in leesbare formaten
-                        const distanceKm = (totalDistance / 1000).toFixed(2); // Afstand in kilometers
-                        const durationMinutes = Math.round(totalDuration / 60); // Tijd in minuten
-                        const durationText = `${Math.floor(durationMinutes / 60)} uur ${durationMinutes % 60} min`;
+                        // Format total distance and travel time for the popup
+                        const distanceKm = (totalDistance / 1000).toFixed(2); // Distance in kilometres
+                        const durationMinutes = Math.round(totalDuration / 60); // Duration in minutes
+                        const durationText = `${Math.floor(durationMinutes / 60)} hr ${durationMinutes % 60} min`;
 
-                        // Voeg afstand en tijd toe aan de popuptekst
                         let startPopupText = `${start.text || start.displayName}`;
                         startPopupText += `
                             <br><hr>
-                            <strong>Totale afstand:</strong> ${distanceKm} km<br>
-                            <strong>Totale rijtijd:</strong> ${durationText}
+                            <strong>Total distance:</strong> ${distanceKm} km<br>
+                            <strong>Total travel time:</strong> ${durationText}
                         `;
 
                         startMarker.bindPopup(startPopupText);
@@ -505,15 +555,15 @@
                         });
                     }
 
-                    // Voeg de eindmarker toe
+                    // Build the end/waypoint marker popup text
                     let endPopupText = end.text || `${end.displayName}`;
                     if (section) {
-                        const distanceKm = (distance / 1000).toFixed(2); // Afstand in kilometers
-                        const durationMinutes = Math.round(duration / 60); // Tijd in minuten
+                        const distanceKm = (distance / 1000).toFixed(2); // Distance in kilometres
+                        const durationMinutes = Math.round(duration / 60); // Duration in minutes
                         endPopupText += `
                             <br><hr>
-                            <strong>Afstand:</strong> ${distanceKm} km<br>
-                            <strong>Rijtijd:</strong> ${durationMinutes} min
+                            <strong>Distance:</strong> ${distanceKm} km<br>
+                            <strong>Travel time:</strong> ${durationMinutes} min
                         `;
                     }
 
@@ -529,19 +579,28 @@
                     resolve({ distance, duration });
                 })
                 .catch(error => {
-                    console.error("Fout bij het ophalen van de route:", error);
+                    console.error("Error fetching route:", error);
                     reject(error);
                 });
         });
     }
 
+    /**
+     * Fetches the total distance and duration for a route by querying ORS
+     * from the first to the last coordinate only (ignoring intermediate waypoints).
+     * Used to populate the start marker popup with overall route statistics.
+     *
+     * @param {Array} coordinates - Array of coordinate objects with lat/lon
+     * @param {string} profile    - OpenRouteService routing profile
+     * @returns {Promise<{totalDuration: number, totalDistance: number}>}
+     */
     function calculateTotalRouteData(coordinates, profile) {
         const totalRouteUrl = `https://api.openrouteservice.org/v2/directions/${profile}?api_key=${openRouteServiceApiKey}&start=${coordinates[0].lon},${coordinates[0].lat}&end=${coordinates[coordinates.length - 1].lon},${coordinates[coordinates.length - 1].lat}`;
 
         return fetch(totalRouteUrl)
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`Fout bij ophalen totale routegegevens: ${response.status}`);
+                    throw new Error(`Error fetching total route data: ${response.status}`);
                 }
                 return response.json();
             })
