@@ -8,7 +8,7 @@ A web application for displaying interactive routes and locations on a map, buil
 |---|---|
 | `example-config.js` | Configuration template — copy to `config.js` and fill in your API keys |
 | `maprouter.php` | **Main application** — handles single and multiple routes, standalone locations, all tile layers and all URL parameters |
-| `openroute.py` | Python helper script to interactively build and open a route URL |
+| `maprouter-builder.py` | Interactive Python script to build and open a complete maprouter.php URL |
 | `mapicons.html` | Visual reference sheet of all 854 available map icons with live filter search |
 | `differences.md` | Comparison between the legacy `getroute.php` and `multiroute.php` (superseded by `maprouter.php`) |
 
@@ -90,7 +90,11 @@ const config = {
 ```
 
 ### 4. Open the application
-Navigate to `maprouter.php` in your browser and add URL parameters as needed:
+Alternatively, use `maprouter-builder.py` to build URLs interactively:
+```
+python3 maprouter-builder.py
+```
+Set your domain in the `BASE_URL` constant at the top of the script.
 ```
 https://yourdomain.com/maprouter.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
 ```
@@ -216,6 +220,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-13 | Added `differences.md` — detailed comparison between `getroute.php` and `multiroute.php` |
 | 2026-06-13 | Added `maprouter.php` — unified script merging `getroute.php` and `multiroute.php` |
 | 2026-06-13 | Added `?table` parameter — collapsible side panel with per-route segment breakdown |
+| 2026-06-13 | Replaced `openroute.py` with `maprouter-builder.py` — full interactive URL builder |
 
 ---
 
