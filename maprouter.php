@@ -275,7 +275,7 @@
                 break;
         }
 
-        L.tileLayer(tileLayerUrl, { attribution: tileLayerAttribution }).addTo(map);
+        L.tileLayer(tileLayerUrl, { attribution: tileLayerAttribution, crossOrigin: '' }).addTo(map);
     })();
 
     /**
