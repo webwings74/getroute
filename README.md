@@ -231,6 +231,9 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-13 | Added `?table` parameter — collapsible side panel with per-route segment breakdown |
 | 2026-06-13 | Replaced `openroute.py` with `maprouter-builder.py` — full interactive URL builder |
 | 2026-06-13 | Added `maprouter-builder.php` — browser-based GUI URL builder |
+| 2026-06-17 | Fixed Thunderforest tile URL domain (`tile` → `api`); added all 10 Thunderforest layers |
+| 2026-06-17 | `maprouter-builder.php`: single-stop route blocks auto-promoted to location markers |
+| 2026-06-17 | `mapicons.html`: click popup with 3× icon preview and one-click URL copy |
 
 ---
 
