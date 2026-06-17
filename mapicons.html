@@ -144,8 +144,8 @@
             max-width: 90vw;
         }
         #icon-popup-img {
-            width: 48px;
-            height: 48px;
+            width: 72px;
+            height: 72px;
             object-fit: contain;
             /* checkerboard background */
             background-image:
@@ -1110,8 +1110,8 @@
     "zoom.png"
     ];
 
-    /** Base URL for icon files — update if the repository is moved. */
-    const ICON_BASE_URL = 'https://raw.githubusercontent.com/webwings74/maprouter/main/mapicons/';
+    /** Base URL for icon files — relative to this page's location. */
+    const ICON_BASE_URL = 'mapicons/';
 
     /**
      * Renders all icon cards into the #grid element.
