@@ -1,4 +1,4 @@
-# Webwings Maprouter
+# Webwings Route Maps
 
 A web application for displaying interactive routes and locations on a map, built on [OpenStreetMap](https://www.openstreetmap.org/) and [Leaflet.js](https://leafletjs.com/). Routes are calculated via the [OpenRouteService](https://openrouteservice.org/) API; locations are geocoded via [Nominatim](https://nominatim.org/). Some tile layers require a free API key.
 
@@ -125,16 +125,8 @@ Map tile layer. Options:
 |---|---|
 | *(default)* | OpenStreetMap standard layer |
 | `topo` | Tracestrack topographic layer *(API key required)* |
-| `cycle` | Thunderforest OpenCycleMap *(API key required)* |
-| `transport` | Thunderforest Transport *(API key required)* |
-| `landscape` | Thunderforest Landscape *(API key required)* |
-| `outdoors` | Thunderforest Outdoors *(API key required)* |
-| `transport-dark` | Thunderforest Transport Dark *(API key required)* |
-| `spinal-map` | Thunderforest Spinal Map *(API key required)* |
-| `pioneer` | Thunderforest Pioneer *(API key required)* |
-| `mobile-atlas` | Thunderforest Mobile Atlas *(API key required)* |
-| `neighbourhood` | Thunderforest Neighbourhood *(API key required)* |
-| `atlas` | Thunderforest Atlas *(API key required)* |
+| `cycle` | Thunderforest cycling layer *(API key required)* |
+| `transport` | Thunderforest transport layer *(API key required)* |
 
 ### `section`
 Set to `true` to show per-segment distance and travel time in waypoint popups. Default: `false`.
@@ -215,7 +207,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | [Nominatim](https://nominatim.org/) | Geocoding (address → coordinates) | No |
 | [OpenRouteService](https://openrouteservice.org/) | Route calculation | Yes (free tier available) |
 | [Tracestrack](https://tracestrack.com/) | Topographic tile layer | Yes (free tier available) |
-| [Thunderforest](https://www.thunderforest.com/) | 10 additional map tile layers | Yes (free tier available) |
+| [Thunderforest](https://www.thunderforest.com/) | Cycling/transport tile layers | Yes (free tier available) |
 
 ---
 
@@ -231,7 +223,6 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-13 | Added `?table` parameter — collapsible side panel with per-route segment breakdown |
 | 2026-06-13 | Replaced `openroute.py` with `maprouter-builder.py` — full interactive URL builder |
 | 2026-06-13 | Added `maprouter-builder.php` — browser-based GUI URL builder |
-| 2026-06-17 | Fixed Thunderforest tile URL domain (tile → api); added all 10 Thunderforest layers |
 
 ---
 

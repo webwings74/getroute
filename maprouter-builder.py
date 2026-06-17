@@ -33,20 +33,7 @@ PROFILES = [
 ]
 
 # Available map tile layers
-LAYERS = [
-    "default (OSM)",
-    "topo",
-    "cycle",
-    "transport",
-    "landscape",
-    "outdoors",
-    "transport-dark",
-    "spinal-map",
-    "pioneer",
-    "mobile-atlas",
-    "neighbourhood",
-    "atlas",
-]
+LAYERS = ["default (OSM)", "topo", "cycle", "transport"]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
