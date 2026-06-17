@@ -8,7 +8,7 @@ A web application for displaying interactive routes and locations on a map, buil
 |---|---|
 | `example-config.js` | Configuration template — copy to `config.js` and fill in your API keys |
 | `maprouter.php` | **Main application** — handles single and multiple routes, standalone locations, all tile layers and all URL parameters |
-| `maprouter-builder.php` | Browser-based GUI for building maprouter.php URLs — no installation needed |
+| `mapbuilder.php` | Browser-based GUI for building maprouter.php URLs — no installation needed |
 | `maprouter-builder.py` | Interactive Python command-line script to build and open a maprouter.php URL |
 | `mapicons.html` | Visual reference sheet of all 854 available map icons with live filter search |
 | `differences.md` | Comparison between the legacy `getroute.php` and `multiroute.php` (superseded by `maprouter.php`) |
@@ -91,7 +91,7 @@ const config = {
 ```
 
 ### 4. Open the application
-Alternatively, use `maprouter-builder.py` to build URLs interactively:
+Alternatively, use `mapbuilder.php` to build URLs interactively:
 ```
 python3 maprouter-builder.py
 ```
@@ -232,8 +232,9 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-13 | Replaced `openroute.py` with `maprouter-builder.py` — full interactive URL builder |
 | 2026-06-13 | Added `maprouter-builder.php` — browser-based GUI URL builder |
 | 2026-06-17 | Fixed Thunderforest tile URL domain (`tile` → `api`); added all 10 Thunderforest layers |
-| 2026-06-17 | `maprouter-builder.php`: single-stop route blocks auto-promoted to location markers |
+| 2026-06-17 | `mapbuilder.php`: single-stop route blocks auto-promoted to location markers |
 | 2026-06-17 | `mapicons.html`: click popup with 3× icon preview and one-click URL copy |
+| 2026-06-17 | Renamed `maprouter-builder.php` to `mapbuilder.php` |
 
 ---
 
