@@ -725,7 +725,9 @@
         const parts = [];
         let hasContent = false;
 
-        // Routes
+        // Routes and auto-promoted single-stop location markers
+        const autoLocations = []; // Single-stop route blocks are promoted to location markers
+
         routes.forEach(route => {
             const stops = route.stops
                 .filter(s => s.address.trim())
@@ -735,7 +737,12 @@
                     if (s.icon.trim()) p.icon = s.icon.trim();
                     return p;
                 });
-            if (stops.length > 0) {
+
+            if (stops.length === 1) {
+                // Only one filled stop — treat it as a standalone location marker instead
+                autoLocations.push(stops[0]);
+                hasContent = true;
+            } else if (stops.length > 1) {
                 parts.push(`route=${encodeURIComponent(JSON.stringify(stops))}`);
                 if (route.colors.length > 0 && route.colors[0]) {
                     parts.push(`color=${encodeURIComponent(JSON.stringify(route.colors))}`);
@@ -744,8 +751,8 @@
             }
         });
 
-        // Locations
-        const locs = locations
+        // Locations (manually added + auto-promoted single-stop routes)
+        const manualLocs = locations
             .filter(l => l.address.trim())
             .map(l => {
                 const p = { point: l.address.trim() };
@@ -753,11 +760,12 @@
                 if (l.icon.trim()) p.icon = l.icon.trim();
                 return p;
             });
-        if (locs.length > 0) {
-            parts.push(`location=${encodeURIComponent(JSON.stringify(locs))}`);
+
+        const allLocs = [...manualLocs, ...autoLocations];
+        if (allLocs.length > 0) {
+            parts.push(`location=${encodeURIComponent(JSON.stringify(allLocs))}`);
             hasContent = true;
         }
-
         if (!hasContent) return null;
 
         // Options
@@ -807,14 +815,16 @@
         urlBox.innerHTML = html;
 
         // Build summary text
-        const routeCount    = routes.filter(r => r.stops.some(s => s.address.trim())).length;
-        const locationCount = locations.filter(l => l.address.trim()).length;
-        const profile       = document.getElementById("opt-profile").options[document.getElementById("opt-profile").selectedIndex].text;
-        const layer         = document.getElementById("opt-layer").options[document.getElementById("opt-layer").selectedIndex].text;
+        const fullRouteCount  = routes.filter(r => r.stops.filter(s => s.address.trim()).length > 1).length;
+        const autoPromoCount  = routes.filter(r => r.stops.filter(s => s.address.trim()).length === 1).length;
+        const locationCount   = locations.filter(l => l.address.trim()).length;
+        const totalMarkers    = locationCount + autoPromoCount;
+        const profile         = document.getElementById("opt-profile").options[document.getElementById("opt-profile").selectedIndex].text;
+        const layer           = document.getElementById("opt-layer").options[document.getElementById("opt-layer").selectedIndex].text;
 
         let summaryParts = [];
-        if (routeCount > 0)    summaryParts.push(`<strong>${routeCount} route${routeCount > 1 ? "s" : ""}</strong>`);
-        if (locationCount > 0) summaryParts.push(`<strong>${locationCount} location marker${locationCount > 1 ? "s" : ""}</strong>`);
+        if (fullRouteCount > 0) summaryParts.push(`<strong>${fullRouteCount} route${fullRouteCount > 1 ? "s" : ""}</strong>`);
+        if (totalMarkers > 0)   summaryParts.push(`<strong>${totalMarkers} location marker${totalMarkers > 1 ? "s" : ""}</strong>${autoPromoCount > 0 ? ` <em>(${autoPromoCount} auto-promoted)</em>` : ""}`);
         summaryParts.push(`profile: <strong>${profile}</strong>`);
         summaryParts.push(`layer: <strong>${layer}</strong>`);
         if (document.getElementById("opt-section").checked) summaryParts.push("<strong>segment stats</strong> in popups");
