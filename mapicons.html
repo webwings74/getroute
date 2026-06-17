@@ -119,6 +119,90 @@
         }
         .icon-card.hidden { display: none; }
 
+        /* ── Icon popup overlay ── */
+        #icon-popup {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        #icon-popup.visible { display: flex; }
+
+        #icon-popup-box {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            min-width: 220px;
+            max-width: 90vw;
+        }
+        #icon-popup-img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            /* checkerboard background */
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 12px 12px;
+            background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+            border-radius: 4px;
+        }
+        #icon-popup-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a2a3a;
+            text-align: center;
+        }
+        #icon-popup-url {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: #3a5068;
+            background: #f0f4f8;
+            border: 1px solid #d0dae4;
+            border-radius: 4px;
+            padding: 6px 8px;
+            word-break: break-all;
+            text-align: left;
+            width: 100%;
+        }
+        #icon-popup-copy {
+            background: #1a2a3a;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 7px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .15s;
+        }
+        #icon-popup-copy:hover { background: #243447; }
+        #icon-popup-copy.copied { background: #27ae60; }
+        #icon-popup-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #8fa8c0;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #icon-popup-close:hover { color: #1a2a3a; }
+        #icon-popup-box { position: relative; }
+
         /* ── Print styles ── */
         @media print {
             body { background: #fff; font-size: 9px; }
@@ -150,6 +234,17 @@
 
 <div id="grid">
     <!-- Icon cards are injected by JavaScript -->
+</div>
+
+<!-- Icon detail popup -->
+<div id="icon-popup">
+    <div id="icon-popup-box">
+        <button id="icon-popup-close" title="Close">&#x2715;</button>
+        <img id="icon-popup-img" src="" alt="">
+        <div id="icon-popup-name"></div>
+        <div id="icon-popup-url"></div>
+        <button id="icon-popup-copy">Copy URL</button>
+    </div>
 </div>
 
 <script>
@@ -1015,9 +1110,13 @@
     "zoom.png"
     ];
 
+    /** Base URL for icon files — update if the repository is moved. */
+    const ICON_BASE_URL = 'https://raw.githubusercontent.com/webwings74/maprouter/main/mapicons/';
+
     /**
      * Renders all icon cards into the #grid element.
      * Each card shows the icon image and its filename (without extension).
+     * Clicking a card opens the detail popup.
      */
     function renderIcons() {
         const grid = document.getElementById('grid');
@@ -1029,15 +1128,20 @@
             const card = document.createElement('div');
             card.className = 'icon-card';
             card.dataset.name = name.toLowerCase();
+            card.dataset.filename = filename;
+            card.title = 'Click to copy URL';
+            card.style.cursor = 'pointer';
 
             const img = document.createElement('img');
-            img.src = `https://raw.githubusercontent.com/webwings74/getroute/main/mapicons/${filename}`;
+            img.src = `${ICON_BASE_URL}${filename}`;
             img.alt = name;
             img.loading = 'lazy';  // lazy-load for performance with 800+ images
 
             const label = document.createElement('span');
             label.className = 'name';
             label.textContent = name;
+
+            card.addEventListener('click', () => openPopup(filename));
 
             card.appendChild(img);
             card.appendChild(label);
@@ -1046,6 +1150,35 @@
 
         grid.appendChild(fragment);
         updateCount();
+    }
+
+    /**
+     * Opens the icon detail popup for the given filename.
+     * Shows the icon at 2× size (48×48px) and the full raw GitHub URL.
+     *
+     * @param {string} filename - Icon filename (e.g. 'campfire.png')
+     */
+    function openPopup(filename) {
+        const name = filename.replace('.png', '');
+        const url  = `${ICON_BASE_URL}${filename}`;
+
+        document.getElementById('icon-popup-img').src = url;
+        document.getElementById('icon-popup-img').alt = name;
+        document.getElementById('icon-popup-name').textContent = name;
+        document.getElementById('icon-popup-url').textContent  = url;
+
+        const copyBtn = document.getElementById('icon-popup-copy');
+        copyBtn.textContent = 'Copy URL';
+        copyBtn.classList.remove('copied');
+
+        document.getElementById('icon-popup').classList.add('visible');
+    }
+
+    /**
+     * Closes the icon detail popup.
+     */
+    function closePopup() {
+        document.getElementById('icon-popup').classList.remove('visible');
     }
 
     /**
@@ -1080,6 +1213,31 @@
     document.addEventListener('DOMContentLoaded', () => {
         renderIcons();
         document.getElementById('filter').addEventListener('input', filterIcons);
+
+        // Close popup on overlay click or close button
+        document.getElementById('icon-popup').addEventListener('click', e => {
+            if (e.target === document.getElementById('icon-popup')) closePopup();
+        });
+        document.getElementById('icon-popup-close').addEventListener('click', closePopup);
+
+        // Close popup on Escape key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closePopup();
+        });
+
+        // Copy URL to clipboard
+        document.getElementById('icon-popup-copy').addEventListener('click', () => {
+            const url = document.getElementById('icon-popup-url').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('icon-popup-copy');
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy URL';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        });
     });
 </script>
 
