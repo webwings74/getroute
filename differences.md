@@ -1,4 +1,6 @@
 # Differences between `getroute.php` and `multiroute.php`
+This file is actually outdated, as that both files have been merged into maprouter.php, containing all and even more functions and options. The
+file will be removed from the repository in future updates.
 
 ## Overview
 
