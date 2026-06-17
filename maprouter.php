@@ -262,11 +262,11 @@
                 tileLayerAttribution = "&copy; Tracestrack contributors";
                 break;
             case "cycle":
-                tileLayerUrl         = `https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
+                tileLayerUrl         = `https://api.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
                 tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
                 break;
             case "transport":
-                tileLayerUrl         = `https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
+                tileLayerUrl         = `https://api.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
                 tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
                 break;
             default:
