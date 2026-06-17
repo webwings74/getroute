@@ -262,43 +262,11 @@
                 tileLayerAttribution = "&copy; Tracestrack contributors";
                 break;
             case "cycle":
-                tileLayerUrl         = `https://api.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
+                tileLayerUrl         = `https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
                 tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
                 break;
             case "transport":
-                tileLayerUrl         = `https://api.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "landscape":
-                tileLayerUrl         = `https://api.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "outdoors":
-                tileLayerUrl         = `https://api.thunderforest.com/outdoors/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "transport-dark":
-                tileLayerUrl         = `https://api.thunderforest.com/transport-dark/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "spinal-map":
-                tileLayerUrl         = `https://api.thunderforest.com/spinal-map/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "pioneer":
-                tileLayerUrl         = `https://api.thunderforest.com/pioneer/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "mobile-atlas":
-                tileLayerUrl         = `https://api.thunderforest.com/mobile-atlas/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "neighbourhood":
-                tileLayerUrl         = `https://api.thunderforest.com/neighbourhood/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
-                tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
-                break;
-            case "atlas":
-                tileLayerUrl         = `https://api.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
+                tileLayerUrl         = `https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${thunderforestApiKey}`;
                 tileLayerAttribution = "&copy; Thunderforest, OpenStreetMap contributors";
                 break;
             default:
