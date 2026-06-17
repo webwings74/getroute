@@ -370,9 +370,17 @@
                         <label for="opt-layer">Map layer</label>
                         <select id="opt-layer" onchange="updatePreview()">
                             <option value="">Default (OSM)</option>
-                            <option value="topo">Topographic</option>
-                            <option value="cycle">Cycling</option>
-                            <option value="transport">Transport</option>
+                            <option value="topo">Tracestrack Topographic</option>
+                            <option value="cycle">Thunderforest Cycling</option>
+                            <option value="transport">Thunderforest Transport</option>
+                            <option value="landscape">Thunderforest Landscape</option>
+                            <option value="outdoors">Thunderforest Outdoors</option>
+                            <option value="transport-dark">Thunderforest Transport Dark</option>
+                            <option value="spinal-map">Thunderforest Spinal Map</option>
+                            <option value="pioneer">Thunderforest Pioneer</option>
+                            <option value="mobile-atlas">Thunderforest Mobile Atlas</option>
+                            <option value="neighbourhood">Thunderforest Neighbourhood</option>
+                            <option value="atlas">Thunderforest Atlas</option>
                         </select>
                     </div>
                     <div>

@@ -125,8 +125,16 @@ Map tile layer. Options:
 |---|---|
 | *(default)* | OpenStreetMap standard layer |
 | `topo` | Tracestrack topographic layer *(API key required)* |
-| `cycle` | Thunderforest cycling layer *(API key required)* |
-| `transport` | Thunderforest transport layer *(API key required)* |
+| `cycle` | Thunderforest OpenCycleMap *(API key required)* |
+| `transport` | Thunderforest Transport *(API key required)* |
+| `landscape` | Thunderforest Landscape *(API key required)* |
+| `outdoors` | Thunderforest Outdoors *(API key required)* |
+| `transport-dark` | Thunderforest Transport Dark *(API key required)* |
+| `spinal-map` | Thunderforest Spinal Map *(API key required)* |
+| `pioneer` | Thunderforest Pioneer *(API key required)* |
+| `mobile-atlas` | Thunderforest Mobile Atlas *(API key required)* |
+| `neighbourhood` | Thunderforest Neighbourhood *(API key required)* |
+| `atlas` | Thunderforest Atlas *(API key required)* |
 
 ### `section`
 Set to `true` to show per-segment distance and travel time in waypoint popups. Default: `false`.
@@ -207,7 +215,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | [Nominatim](https://nominatim.org/) | Geocoding (address → coordinates) | No |
 | [OpenRouteService](https://openrouteservice.org/) | Route calculation | Yes (free tier available) |
 | [Tracestrack](https://tracestrack.com/) | Topographic tile layer | Yes (free tier available) |
-| [Thunderforest](https://www.thunderforest.com/) | Cycling/transport tile layers | Yes (free tier available) |
+| [Thunderforest](https://www.thunderforest.com/) | 10 additional map tile layers | Yes (free tier available) |
 
 ---
 
