@@ -1,4 +1,4 @@
-# Webwings Route Maps
+# Webwings Maprouter
 
 A web application for displaying interactive routes and locations on a map, built on [OpenStreetMap](https://www.openstreetmap.org/) and [Leaflet.js](https://leafletjs.com/). Routes are calculated via the [OpenRouteService](https://openrouteservice.org/) API; locations are geocoded via [Nominatim](https://nominatim.org/). Some tile layers require a free API key.
 
