@@ -462,7 +462,7 @@
         const content = document.getElementById('panel-content');
         content.innerHTML = '';
 
-        tableData.forEach(route => {
+        tableData.filter(Boolean).forEach(route => {
             const section = document.createElement('div');
             section.className = 'route-section';
 
@@ -568,6 +568,11 @@
         // Process standalone location markers
         if (locations.length > 0) {
             promises.push(renderLocations(locations));
+        }
+
+        // Pre-allocate tableData slots in correct route order before any async work
+        if (showTable) {
+            routes.forEach((_, index) => { tableData[index] = null; });
         }
 
         // Process each route
@@ -765,7 +770,7 @@
                         ? `Route ${routeIndex + 1} — ${startLabel}`
                         : startLabel;
                     tableEntry = { routeLabel, segments: [] };
-                    tableData.push(tableEntry);
+                    tableData[routeIndex] = tableEntry;
                 }
 
                 return calculateTotalRouteData(coordinates, profile)
