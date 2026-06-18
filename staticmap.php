@@ -6,7 +6,7 @@
  * and returns a PNG image with OSM background and markers.
  *
  * Requirements:
- *   composer require dantsu/php-osm-static-api
+ *   composer require dantsu/php-osm-static-api:^0.6
  *
  * URL parameters:
  *   route    — JSON array of route points: [{"point":"Amsterdam","text":"Start"}, ...]
@@ -16,9 +16,6 @@
  *   width    — Image width in pixels (default: 800)
  *   height   — Image height in pixels (default: 500)
  *   zoom     — Zoom level override (default: auto-fit)
- *
- * Example:
- *   staticmap.php?route=[{"point":"Amsterdam"},{"point":"Rotterdam"}]&color=["navy"]
  */
 
 require_once __DIR__ . '/vendor/autoload.php';
@@ -26,35 +23,31 @@ require_once __DIR__ . '/vendor/autoload.php';
 use DantSu\OpenStreetMapStaticAPI\OpenStreetMap;
 use DantSu\OpenStreetMapStaticAPI\LatLng;
 use DantSu\OpenStreetMapStaticAPI\Markers;
-use DantSu\OpenStreetMapStaticAPI\DrawingForm;
 use DantSu\OpenStreetMapStaticAPI\Line;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
  * Geocode a place name via Nominatim.
+ * Accepts raw coordinates "lat,lon" directly.
  * Returns ['lat' => float, 'lon' => float] or null when not found.
  */
 function geocode(string $query): ?array
 {
-    // Accept raw coordinates: "52.1234,4.5678"
     if (preg_match('/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/', trim($query), $m)) {
         return ['lat' => (float)$m[1], 'lon' => (float)$m[2]];
     }
-
-    $url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($query);
+    $url  = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' . urlencode($query);
     $opts = ['http' => ['header' => "User-Agent: Webwings-Maprouter/1.0\r\n"]];
     $data = @file_get_contents($url, false, stream_context_create($opts));
     if (!$data) return null;
-
     $results = json_decode($data, true);
     if (empty($results)) return null;
-
     return ['lat' => (float)$results[0]['lat'], 'lon' => (float)$results[0]['lon']];
 }
 
 /**
- * Parse a JSON array from a URL parameter, return [] on failure.
+ * Parse a JSON array from a URL parameter string. Returns [] on failure.
  */
 function parseJsonParam(string $raw): array
 {
@@ -63,51 +56,26 @@ function parseJsonParam(string $raw): array
 }
 
 /**
- * Convert a CSS color name or hex (#rgb / #rrggbb / #rrggbbaa) to [r, g, b, a].
+ * Convert a CSS color name or hex (#rgb / #rrggbb) to a 6-char hex string.
  */
-function cssColorToRgba(string $color): array
+function toHex(string $color): string
 {
     $named = [
-        'navy'    => [0,   0,   128],
-        'blue'    => [0,   0,   255],
-        'red'     => [255, 0,   0],
-        'green'   => [0,   128, 0],
-        'orange'  => [255, 165, 0],
-        'purple'  => [128, 0,   128],
-        'black'   => [0,   0,   0],
-        'white'   => [255, 255, 255],
-        'gray'    => [128, 128, 128],
-        'grey'    => [128, 128, 128],
-        'teal'    => [0,   128, 128],
-        'maroon'  => [128, 0,   0],
-        'olive'   => [128, 128, 0],
-        'coral'   => [255, 127, 80],
-        'crimson' => [220, 20,  60],
-        'indigo'  => [75,  0,   130],
-        'violet'  => [238, 130, 238],
+        'navy'    => '000080', 'blue'    => '0000ff', 'red'     => 'ff0000',
+        'green'   => '008000', 'orange'  => 'ffa500', 'purple'  => '800080',
+        'black'   => '000000', 'white'   => 'ffffff', 'gray'    => '808080',
+        'grey'    => '808080', 'teal'    => '008080', 'maroon'  => '800000',
+        'olive'   => '808000', 'coral'   => 'ff7f50', 'crimson' => 'dc143c',
+        'indigo'  => '4b0082', 'violet'  => 'ee82ee', 'brown'   => 'a52a2a',
     ];
-
     $lower = strtolower(trim($color));
-
-    if (isset($named[$lower])) {
-        return array_merge($named[$lower], [255]);
-    }
-
-    // Hex notation
+    if (isset($named[$lower])) return $named[$lower];
     $hex = ltrim($lower, '#');
     if (strlen($hex) === 3) {
         $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
     }
-    if (strlen($hex) >= 6) {
-        return [
-            hexdec(substr($hex, 0, 2)),
-            hexdec(substr($hex, 2, 2)),
-            hexdec(substr($hex, 4, 2)),
-            strlen($hex) === 8 ? hexdec(substr($hex, 6, 2)) : 255,
-        ];
-    }
-
-    return [0, 0, 128, 255]; // fallback: navy
+    if (preg_match('/^[0-9a-f]{6}$/i', $hex)) return $hex;
+    return '000080'; // fallback: navy
 }
 
 // ── Input parsing ─────────────────────────────────────────────────────────────
@@ -116,113 +84,84 @@ $width  = max(200, min(1200, (int)($_GET['width']  ?? 800)));
 $height = max(150, min(900,  (int)($_GET['height'] ?? 500)));
 $zoom   = isset($_GET['zoom']) ? (int)$_GET['zoom'] : null;
 
-// Collect all route= parameters (may be repeated)
+// PHP collapses duplicate keys — use raw query string to get all route= params
 $rawRoutes = [];
-foreach ($_GET as $key => $val) {
-    if ($key === 'route') {
-        // PHP collapses duplicate keys; handle both string and array
-        if (is_array($val)) {
-            foreach ($val as $v) $rawRoutes[] = $v;
-        } else {
-            $rawRoutes[] = $val;
-        }
-    }
-}
-// Also support route[] notation
-if (isset($_GET['route']) && is_array($_GET['route'])) {
-    $rawRoutes = $_GET['route'];
-}
-
-// Collect color= parameters
 $rawColors = [];
-foreach ($_GET as $key => $val) {
-    if ($key === 'color') {
-        if (is_array($val)) {
-            foreach ($val as $v) $rawColors[] = $v;
-        } else {
-            $rawColors[] = $val;
-        }
-    }
+parse_str($_SERVER['QUERY_STRING'] ?? '', $parsed);
+
+// Build list from repeated params (PHP gives last value for duplicates)
+// So we parse the raw query string manually
+$queryParts = explode('&', $_SERVER['QUERY_STRING'] ?? '');
+foreach ($queryParts as $part) {
+    if (strpos($part, '=') === false) continue;
+    [$key, $val] = explode('=', $part, 2);
+    $key = urldecode($key);
+    $val = urldecode($val);
+    if ($key === 'route') $rawRoutes[] = $val;
+    if ($key === 'color') $rawColors[] = $val;
 }
 
 $locationParam = $_GET['location'] ?? null;
 
 // ── Geocoding ─────────────────────────────────────────────────────────────────
 
-$errors     = [];
-$allCoords  = []; // All points for bounding-box calculation
-$routes     = []; // [ [ ['lat'=>, 'lon'=>, 'text'=>, 'color'=>], ... ], ... ]
-$locations  = []; // [ ['lat'=>, 'lon'=>, 'text'=>], ... ]
+$errors    = [];
+$allCoords = [];
+$routes    = [];
+$locations = [];
 
-// Process routes
+$defaultColors = ['000080', 'cc0000', '006600', 'cc6600', '660066'];
+
 foreach ($rawRoutes as $routeIndex => $rawRoute) {
     $points     = parseJsonParam($rawRoute);
-    $colorArray = isset($rawColors[$routeIndex])
-        ? parseJsonParam($rawColors[$routeIndex])
-        : ['navy'];
-    $color      = $colorArray[0] ?? 'navy';
+    $colorArray = isset($rawColors[$routeIndex]) ? parseJsonParam($rawColors[$routeIndex]) : ['navy'];
+    $hexColor   = toHex($colorArray[0] ?? 'navy');
 
     $routeCoords = [];
     foreach ($points as $point) {
         $name   = $point['point'] ?? '';
         $text   = $point['text']  ?? $name;
         $coords = geocode($name);
-        if ($coords === null) {
-            $errors[] = $name;
-            continue;
-        }
+        if ($coords === null) { $errors[] = $name; continue; }
         $coords['text']  = $text;
-        $coords['color'] = $color;
         $routeCoords[]   = $coords;
         $allCoords[]     = $coords;
     }
     if (!empty($routeCoords)) {
-        $routes[] = $routeCoords;
+        $routes[] = ['coords' => $routeCoords, 'color' => $hexColor];
     }
 }
 
-// Process standalone locations
 if ($locationParam) {
-    $points = parseJsonParam($locationParam);
-    foreach ($points as $point) {
+    foreach (parseJsonParam($locationParam) as $point) {
         $name   = $point['point'] ?? '';
         $text   = $point['text']  ?? $name;
         $coords = geocode($name);
-        if ($coords === null) {
-            $errors[] = $name;
-            continue;
-        }
+        if ($coords === null) { $errors[] = $name; continue; }
         $coords['text'] = $text;
         $locations[]    = $coords;
         $allCoords[]    = $coords;
     }
 }
 
-// Nothing to render
 if (empty($allCoords)) {
     header('Content-Type: image/png');
-    // Return a blank 1x1 PNG
     echo base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
     exit;
 }
 
-// ── Bounding box & centre ─────────────────────────────────────────────────────
+// ── Centre & zoom ─────────────────────────────────────────────────────────────
 
-$lats = array_column($allCoords, 'lat');
-$lons = array_column($allCoords, 'lon');
+$lats   = array_column($allCoords, 'lat');
+$lons   = array_column($allCoords, 'lon');
 $minLat = min($lats); $maxLat = max($lats);
 $minLon = min($lons); $maxLon = max($lons);
-$centerLat = ($minLat + $maxLat) / 2;
-$centerLon = ($minLon + $maxLon) / 2;
 
-// Auto zoom when not specified: fit all points
 if ($zoom === null) {
     if (count($allCoords) === 1) {
         $zoom = 13;
     } else {
-        $latDiff = $maxLat - $minLat;
-        $lonDiff = $maxLon - $minLon;
-        $diff    = max($latDiff, $lonDiff);
+        $diff = max($maxLat - $minLat, $maxLon - $minLon);
         if      ($diff > 10)  $zoom = 6;
         elseif  ($diff > 5)   $zoom = 7;
         elseif  ($diff > 2)   $zoom = 8;
@@ -234,63 +173,86 @@ if ($zoom === null) {
     }
 }
 
-// ── Build the map ─────────────────────────────────────────────────────────────
+// ── Build map using bounding box ──────────────────────────────────────────────
 
-$map = new OpenStreetMap(new LatLng($centerLat, $centerLon), $zoom, $width, $height);
+$map = OpenStreetMap::createFromBoundingBox(
+    new LatLng($maxLat, $minLon),
+    new LatLng($minLat, $maxLon),
+    40,
+    $width,
+    $height
+);
 
-// Route markers and connecting lines
-$routeColors = ['navy', 'red', 'green', 'orange', 'purple'];
+// ── Draw routes ───────────────────────────────────────────────────────────────
 
-foreach ($routes as $routeIndex => $routeCoords) {
-    $rgba  = cssColorToRgba($routeCoords[0]['color'] ?? $routeColors[$routeIndex % count($routeColors)]);
-    $count = count($routeCoords);
+$startIcon = __DIR__ . '/mapicons/start.png';
+$endIcon   = __DIR__ . '/mapicons/stop.png';
+$pinIcon   = __DIR__ . '/mapicons/pinpoint.png';
 
-    // Draw straight lines between route points (no ORS — static map only)
+// Fallback to a built-in marker if custom icons don't exist
+$hasStart  = file_exists($startIcon);
+$hasEnd    = file_exists($endIcon);
+$hasPin    = file_exists($pinIcon);
+
+foreach ($routes as $route) {
+    $coords = $route['coords'];
+    $color  = $route['color'];
+    $count  = count($coords);
+
+    // Draw line through all route points
     if ($count >= 2) {
-        for ($i = 0; $i < $count - 1; $i++) {
-            $line = (new Line())
-                ->addPoint(new LatLng($routeCoords[$i]['lat'],     $routeCoords[$i]['lon']))
-                ->addPoint(new LatLng($routeCoords[$i+1]['lat'],   $routeCoords[$i+1]['lon']))
-                ->setStrokeColor($rgba[0], $rgba[1], $rgba[2], $rgba[3])
-                ->setStrokeWeight(4);
-            $map->addLine($line);
+        $line = new Line('#' . $color, 4);
+        foreach ($coords as $c) {
+            $line->addPoint(new LatLng($c['lat'], $c['lon']));
         }
+        $map->addLine($line);
     }
 
-    // Start marker (green circle)
-    $startMarkers = (new Markers(__DIR__ . '/mapicons/flag.png'))
-        ->setIconSize(32, 37)
-        ->setIconAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
-        ->addMarker(new LatLng($routeCoords[0]['lat'], $routeCoords[0]['lon']));
-    $map->addMarkers($startMarkers);
-
-    // End marker (red flag)
-    $endMarkers = (new Markers(__DIR__ . '/mapicons/flag-finish.png'))
-        ->setIconSize(32, 37)
-        ->setIconAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
-        ->addMarker(new LatLng($routeCoords[$count - 1]['lat'], $routeCoords[$count - 1]['lon']));
-    $map->addMarkers($endMarkers);
+    // Start marker
+    $icon = $hasStart ? $startIcon : $pinIcon;
+    if ($hasStart || $hasPin) {
+        $map->addMarkers(
+            (new Markers($icon))
+                ->setAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
+                ->addMarker(new LatLng($coords[0]['lat'], $coords[0]['lon']))
+        );
+    }
 
     // Intermediate waypoints
     for ($i = 1; $i < $count - 1; $i++) {
-        $waypointMarkers = (new Markers(__DIR__ . '/mapicons/pinpoint.png'))
-            ->setIconSize(32, 37)
-            ->setIconAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
-            ->addMarker(new LatLng($routeCoords[$i]['lat'], $routeCoords[$i]['lon']));
-        $map->addMarkers($waypointMarkers);
+        if ($hasPin) {
+            $map->addMarkers(
+                (new Markers($pinIcon))
+                    ->setAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
+                    ->addMarker(new LatLng($coords[$i]['lat'], $coords[$i]['lon']))
+            );
+        }
+    }
+
+    // End marker
+    $icon = $hasEnd ? $endIcon : $pinIcon;
+    if ($hasEnd || $hasPin) {
+        $map->addMarkers(
+            (new Markers($icon))
+                ->setAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
+                ->addMarker(new LatLng($coords[$count - 1]['lat'], $coords[$count - 1]['lon']))
+        );
     }
 }
 
-// Standalone location markers
+// ── Draw standalone locations ─────────────────────────────────────────────────
+
 foreach ($locations as $loc) {
-    $poiMarkers = (new Markers(__DIR__ . '/mapicons/pinpoint.png'))
-        ->setIconSize(32, 37)
-        ->setIconAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
-        ->addMarker(new LatLng($loc['lat'], $loc['lon']));
-    $map->addMarkers($poiMarkers);
+    if ($hasPin) {
+        $map->addMarkers(
+            (new Markers($pinIcon))
+                ->setAnchor(Markers::ANCHOR_CENTER, Markers::ANCHOR_BOTTOM)
+                ->addMarker(new LatLng($loc['lat'], $loc['lon']))
+        );
+    }
 }
 
-// ── Output ────────────────────────────────────────────────────────────────────
+// ── Output PNG ────────────────────────────────────────────────────────────────
 
 header('Content-Type: image/png');
 header('Cache-Control: public, max-age=3600');
