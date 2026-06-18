@@ -316,6 +316,20 @@
         }
         #summary strong { color: #1a2a3a; }
 
+        /* ── Import URL section ── */
+        #import-section { display: flex; flex-direction: column; gap: 8px; }
+        #import-section h2 { font-size: 13px; font-weight: 700; color: #1a2a3a; letter-spacing: .03em; }
+        #import-row { display: flex; gap: 8px; }
+        #import-url-input { flex: 1; }
+        #import-feedback {
+            font-size: 11px;
+            padding: 6px 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #import-feedback.ok  { background: #d5f0e0; color: #1a7a40; }
+        #import-feedback.err { background: #fdecea; color: #c0392b; }
+
         /* ── Responsive ── */
         @media (max-width: 700px) {
             main { flex-direction: column; overflow: visible; }
@@ -421,6 +435,16 @@
             <button class="btn-copy" id="copy-btn" onclick="copyUrl()">Copy URL</button>
         </div>
         <div id="summary">Add routes and locations using the form on the left.</div>
+
+        <div id="import-section">
+            <h2>Import URL</h2>
+            <div id="import-row">
+                <input type="text" id="import-url-input" placeholder="Paste a maprouter.php URL here…"
+                    oninput="clearImportFeedback()">
+                <button class="btn-secondary" onclick="importUrl()">Load</button>
+            </div>
+            <div id="import-feedback"></div>
+        </div>
     </div>
 
 </main>
@@ -895,6 +919,131 @@
         } else {
             fallbackCopy();
         }
+    }
+
+    // ── URL import ───────────────────────────────────────────────────────────
+
+    function clearImportFeedback() {
+        const fb = document.getElementById("import-feedback");
+        fb.style.display = "none";
+        fb.className = "";
+        fb.textContent = "";
+    }
+
+    /**
+     * Parses a pasted maprouter.php URL and populates the sidebar form.
+     * Processes pairs in order to correctly associate each route with its color.
+     */
+    function importUrl() {
+        const raw = document.getElementById("import-url-input").value.trim();
+        const fb  = document.getElementById("import-feedback");
+
+        const showFeedback = (msg, type) => {
+            fb.textContent  = msg;
+            fb.className    = type;
+            fb.style.display = "block";
+        };
+
+        if (!raw) { showFeedback("Paste a URL first.", "err"); return; }
+
+        const qmark = raw.indexOf("?");
+        if (qmark === -1) { showFeedback("No query parameters found in this URL.", "err"); return; }
+
+        const query = raw.slice(qmark + 1);
+        const pairs = query.split("&");
+
+        const newRoutes    = [];
+        const newLocations = [];
+        let   currentRoute = null;
+        let   parseErrors  = 0;
+
+        // Reset options to defaults
+        document.getElementById("opt-profile").value      = "driving-car";
+        document.getElementById("opt-layer").value        = "";
+        document.getElementById("opt-zoom").value         = "";
+        document.getElementById("opt-section").checked    = false;
+        document.getElementById("opt-table").checked      = false;
+
+        pairs.forEach(pair => {
+            const eqIdx = pair.indexOf("=");
+            const key   = eqIdx !== -1 ? pair.slice(0, eqIdx) : pair;
+            const val   = eqIdx !== -1 ? (() => { try { return decodeURIComponent(pair.slice(eqIdx + 1)); } catch(e) { parseErrors++; return ""; } })() : "";
+
+            switch (key) {
+                case "route":
+                    try {
+                        const stops = JSON.parse(val);
+                        currentRoute = {
+                            stops: stops.map(s => ({
+                                address: s.point || "",
+                                text:    s.text  || "",
+                                icon:    s.icon  || "",
+                            })),
+                            colors: ["#000080"],
+                        };
+                        newRoutes.push(currentRoute);
+                    } catch(e) { parseErrors++; }
+                    break;
+
+                case "color":
+                    try {
+                        const colors = JSON.parse(val);
+                        if (currentRoute) currentRoute.colors = colors;
+                    } catch(e) { parseErrors++; }
+                    break;
+
+                case "location":
+                    try {
+                        JSON.parse(val).forEach(l => newLocations.push({
+                            address: l.point || "",
+                            text:    l.text  || "",
+                            icon:    l.icon  || "",
+                        }));
+                    } catch(e) { parseErrors++; }
+                    break;
+
+                case "profile":
+                    document.getElementById("opt-profile").value = val;
+                    break;
+                case "layer":
+                    document.getElementById("opt-layer").value = val;
+                    break;
+                case "zoom":
+                    document.getElementById("opt-zoom").value = val;
+                    break;
+                case "section":
+                    document.getElementById("opt-section").checked = true;
+                    break;
+                case "table":
+                    document.getElementById("opt-table").checked = true;
+                    break;
+            }
+        });
+
+        if (newRoutes.length === 0 && newLocations.length === 0) {
+            showFeedback("No routes or locations found in this URL.", "err");
+            return;
+        }
+
+        // Apply parsed state
+        routes    = newRoutes;
+        locations = newLocations;
+
+        document.getElementById("routes-container").innerHTML    = "";
+        routes.forEach((_, i) => renderRoute(i));
+
+        document.getElementById("locations-container").innerHTML = "";
+        locations.forEach((_, i) => renderLocation(i));
+
+        updatePreview();
+
+        const routeWord    = newRoutes.length    === 1 ? "route"    : "routes";
+        const locationWord = newLocations.length === 1 ? "location" : "locations";
+        const parts = [];
+        if (newRoutes.length > 0)    parts.push(`${newRoutes.length} ${routeWord}`);
+        if (newLocations.length > 0) parts.push(`${newLocations.length} ${locationWord}`);
+        const errorNote = parseErrors > 0 ? ` (${parseErrors} parse error${parseErrors > 1 ? "s" : ""})` : "";
+        showFeedback(`Loaded: ${parts.join(" and ")}${errorNote}.`, parseErrors > 0 ? "err" : "ok");
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
