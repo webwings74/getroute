@@ -179,6 +179,13 @@ Point labels use the `text` value if provided, otherwise the geocoded place name
 
 The panel can be toggled open and closed at any time using the button on the left edge of the map.
 
+### `title`
+Sets the browser tab title for the map page. If omitted, the default title "Webwings OpenStreetMap Route" is used.
+
+```
+maprouter.php?route=[...]&title=Fietstocht%20Zeeland
+```
+
 ### `zoom`
 Integer zoom level (1–20). Overrides the automatic fit-to-bounds behaviour.
 
@@ -256,6 +263,8 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-18 | `maprouter.php`: added duration formatting helper; route detail panel now displays travel time correctly |
 | 2026-06-18 | `mapicons.html`: fixed "Copy URL" button — added fallback for non-HTTPS / `file://` contexts where Clipboard API is unavailable |
 | 2026-06-18 | `mapbuilder.php`: added "Import URL" section — paste any maprouter.php URL to reverse-populate all routes, locations, and options in the sidebar |
+| 2026-06-18 | Added `&title=` parameter — sets the browser tab title; supported in both `maprouter.php` and `mapbuilder.php` |
+| 2026-06-18 | `mapbuilder.php`: fixed URL import — `+` in query strings now correctly decoded as a space |
 
 ---
 

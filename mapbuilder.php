@@ -375,6 +375,10 @@
             <div class="section-block-header">Options</div>
             <div class="section-block-body">
                 <div class="options-grid">
+                    <div class="option-full">
+                        <label for="opt-title">Page title</label>
+                        <input type="text" id="opt-title" placeholder="Optional — sets the browser tab title" oninput="updatePreview()">
+                    </div>
                     <div>
                         <label for="opt-profile">Routing profile</label>
                         <select id="opt-profile" onchange="updatePreview()">
@@ -807,6 +811,9 @@
         if (!hasContent) return null;
 
         // Options
+        const title = document.getElementById("opt-title").value.trim();
+        if (title) parts.push(`title=${encodeURIComponent(title)}`);
+
         const profile = document.getElementById("opt-profile").value;
         if (profile && profile !== "driving-car") parts.push(`profile=${encodeURIComponent(profile)}`);
 
@@ -958,6 +965,7 @@
         let   parseErrors  = 0;
 
         // Reset options to defaults
+        document.getElementById("opt-title").value        = "";
         document.getElementById("opt-profile").value      = "driving-car";
         document.getElementById("opt-layer").value        = "";
         document.getElementById("opt-zoom").value         = "";
@@ -967,7 +975,7 @@
         pairs.forEach(pair => {
             const eqIdx = pair.indexOf("=");
             const key   = eqIdx !== -1 ? pair.slice(0, eqIdx) : pair;
-            const val   = eqIdx !== -1 ? (() => { try { return decodeURIComponent(pair.slice(eqIdx + 1)); } catch(e) { parseErrors++; return ""; } })() : "";
+            const val   = eqIdx !== -1 ? (() => { try { return decodeURIComponent(pair.slice(eqIdx + 1).replace(/\+/g, '%20')); } catch(e) { parseErrors++; return ""; } })() : "";
 
             switch (key) {
                 case "route":
@@ -1002,6 +1010,9 @@
                     } catch(e) { parseErrors++; }
                     break;
 
+                case "title":
+                    document.getElementById("opt-title").value = val;
+                    break;
                 case "profile":
                     document.getElementById("opt-profile").value = val;
                     break;
