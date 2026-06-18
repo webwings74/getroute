@@ -975,7 +975,7 @@
         pairs.forEach(pair => {
             const eqIdx = pair.indexOf("=");
             const key   = eqIdx !== -1 ? pair.slice(0, eqIdx) : pair;
-            const val   = eqIdx !== -1 ? (() => { try { return decodeURIComponent(pair.slice(eqIdx + 1)); } catch(e) { parseErrors++; return ""; } })() : "";
+            const val   = eqIdx !== -1 ? (() => { try { return decodeURIComponent(pair.slice(eqIdx + 1).replace(/\+/g, '%20')); } catch(e) { parseErrors++; return ""; } })() : "";
 
             switch (key) {
                 case "route":
