@@ -853,14 +853,14 @@
                     const duration = routeData.features[0].properties.segments[0].duration;
                     const distance = routeData.features[0].properties.segments[0].distance;
 
-                    // Collect segment data for the table panel
+                    // Collect segment data for the table panel (indexed to preserve order)
                     if (tableEntry) {
-                        tableEntry.segments.push({
+                        tableEntry.segments[segmentIndex] = {
                             from:     pointLabel(start, segmentIndex),
                             to:       pointLabel(end,   segmentIndex + 1),
                             distance,
                             duration
-                        });
+                        };
                     }
 
                     // Start marker (first segment only)
