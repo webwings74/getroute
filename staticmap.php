@@ -146,11 +146,9 @@ $lats = array_column($allCoords, 'lat');
 $lons = array_column($allCoords, 'lon');
 
 if (count($allCoords) === 1) {
-    $position = $allCoords[0]['lon'] . ',' . $allCoords[0]['lat'] . ',13';
+    $position = $allCoords[0]['lon'] . ',' . $allCoords[0]['lat'] . ',13,0';
 } else {
-    $minLon = min($lons); $maxLon = max($lons);
-    $minLat = min($lats); $maxLat = max($lats);
-    $position = '[' . $minLon . ',' . $minLat . ',' . $maxLon . ',' . $maxLat . ']';
+    $position = 'auto';
 }
 
 // ── Mapbox URL samenstellen ───────────────────────────────────────────────────
@@ -158,7 +156,7 @@ if (count($allCoords) === 1) {
 $styleId    = 'mapbox/' . $style . '-v12';
 $overlayStr = implode(',', $overlays);
 $mapboxUrl  = "https://api.mapbox.com/styles/v1/{$styleId}/static/{$overlayStr}/{$position}/{$width}x{$height}@2x"
-            . "?padding=40&access_token={$mapboxToken}";
+            . "?access_token={$mapboxToken}";
 
 // ── Fetch via cURL & proxy ────────────────────────────────────────────────────
 
