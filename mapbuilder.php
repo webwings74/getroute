@@ -507,7 +507,12 @@
             </div>
         `;
 
-        container.appendChild(card);
+        const nextSibling = container.children[routeIndex];
+        if (nextSibling) {
+            container.insertBefore(card, nextSibling);
+        } else {
+            container.appendChild(card);
+        }
 
         // Render stops
         route.stops.forEach((_, stopIndex) => renderStop(routeIndex, stopIndex));

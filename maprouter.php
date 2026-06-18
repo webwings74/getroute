@@ -425,6 +425,14 @@
 
     // ── Side panel ────────────────────────────────────────────────────────────
 
+    function fmtDuration(seconds) {
+        const totalMins = Math.round(seconds / 60);
+        if (totalMins < 60) return `${totalMins} min`;
+        const h = Math.floor(totalMins / 60);
+        const m = totalMins % 60;
+        return m === 0 ? `${h}h` : `${h}h ${m}min`;
+    }
+
     /**
      * Opens or closes the side panel and shifts the map accordingly.
      * Called by the toggle button and the close button inside the panel.
@@ -485,13 +493,12 @@
                 totalDist += seg.distance;
                 totalDur  += seg.duration;
 
-                const mins = Math.round(seg.duration / 60);
-                const tr   = document.createElement('tr');
+                const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${seg.from}</td>
                     <td>${seg.to}</td>
                     <td class="num">${(seg.distance / 1000).toFixed(2)} km</td>
-                    <td class="num">${mins} min</td>
+                    <td class="num">${fmtDuration(seg.duration)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -885,11 +892,10 @@
                     let endPopupText = end.text || `Waypoint: ${end.displayName}`;
                     if (section) {
                         const distKm = (distance / 1000).toFixed(2);
-                        const mins   = Math.round(duration / 60);
                         endPopupText += `
                             <br><hr>
                             <strong>Segment distance:</strong> ${distKm} km<br>
-                            <strong>Segment time:</strong> ${mins} min
+                            <strong>Segment time:</strong> ${fmtDuration(duration)}
                         `;
                     }
 
