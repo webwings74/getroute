@@ -250,6 +250,8 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-17 | Renamed `maprouter-builder.php` to `mapbuilder.php` |
 | 2026-06-18 | Added `staticmap.php` — server-side static PNG map proxy using Mapbox Static API |
 | 2026-06-18 | Added `config.php` — server-side config for Mapbox API token |
+| 2026-06-18 | `mapbuilder.php`: added "Open in Staticmap" button alongside "Open in maprouter" |
+| 2026-06-18 | `staticmap.php`: standalone location markers now use a star icon instead of letter L |
 
 ---
 
