@@ -255,6 +255,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-18 | `mapbuilder.php`: fixed route card insertion order — cards now always appear in the correct sequence |
 | 2026-06-18 | `maprouter.php`: added duration formatting helper; route detail panel now displays travel time correctly |
 | 2026-06-18 | `mapicons.html`: fixed "Copy URL" button — added fallback for non-HTTPS / `file://` contexts where Clipboard API is unavailable |
+| 2026-06-18 | `mapbuilder.php`: added "Import URL" section — paste any maprouter.php URL to reverse-populate all routes, locations, and options in the sidebar |
 
 ---
 
