@@ -137,7 +137,7 @@ foreach ($routes as $i => $route) {
 
 // Losse locaties (blauw)
 foreach ($locations as $loc) {
-    $overlays[] = 'pin-s-l+0057b8(' . $loc['lon'] . ',' . $loc['lat'] . ')';
+    $overlays[] = 'pin-s-star+0057b8(' . $loc['lon'] . ',' . $loc['lat'] . ')';
 }
 
 // ── Positie bepalen ───────────────────────────────────────────────────────────
