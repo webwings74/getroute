@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Map Icon Reference Sheet — Webwings getroute project -->
+    <!-- Map Icon Reference Sheet — Webwings Maprouter project -->
     <!-- (c) Webwings 2025 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1228,15 +1228,33 @@
         // Copy URL to clipboard
         document.getElementById('icon-popup-copy').addEventListener('click', () => {
             const url = document.getElementById('icon-popup-url').textContent;
-            navigator.clipboard.writeText(url).then(() => {
-                const btn = document.getElementById('icon-popup-copy');
+            const btn = document.getElementById('icon-popup-copy');
+
+            function markCopied() {
                 btn.textContent = '✓ Copied!';
                 btn.classList.add('copied');
                 setTimeout(() => {
                     btn.textContent = 'Copy URL';
                     btn.classList.remove('copied');
                 }, 2000);
-            });
+            }
+
+            function fallbackCopy() {
+                const ta = document.createElement('textarea');
+                ta.value = url;
+                ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                try { document.execCommand('copy'); markCopied(); } catch (e) {}
+                document.body.removeChild(ta);
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(markCopied).catch(fallbackCopy);
+            } else {
+                fallbackCopy();
+            }
         });
     });
 </script>
