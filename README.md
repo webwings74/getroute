@@ -252,6 +252,9 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-18 | Added `config.php` — server-side config for Mapbox API token |
 | 2026-06-18 | `mapbuilder.php`: added "Open in Staticmap" button alongside "Open in maprouter" |
 | 2026-06-18 | `staticmap.php`: standalone location markers now use a star icon instead of letter L |
+| 2026-06-18 | `mapbuilder.php`: fixed route card insertion order — cards now always appear in the correct sequence |
+| 2026-06-18 | `maprouter.php`: added duration formatting helper; route detail panel now displays travel time correctly |
+| 2026-06-18 | `mapicons.html`: fixed "Copy URL" button — added fallback for non-HTTPS / `file://` contexts where Clipboard API is unavailable |
 
 ---
 
