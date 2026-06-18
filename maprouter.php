@@ -248,6 +248,12 @@
     // ── URL parameter parsing ───────────────────────────────────────────────
     const urlParams = new URLSearchParams(window.location.search);
 
+    // Apply optional page title
+    (function applyTitle() {
+        const title = urlParams.get("title");
+        if (title) document.title = title;
+    })();
+
     /**
      * Selects and adds the correct tile layer based on the ?layer= URL parameter.
      * Supported values: 'topo', 'cycle', 'transport'. Defaults to OpenStreetMap.
