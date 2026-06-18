@@ -251,6 +251,14 @@
             width: 100%;
         }
         .btn-open:hover { background: #219a52; }
+        .btn-staticmap {
+            background: #1a6bbf;
+            color: #fff;
+            font-size: 13px;
+            padding: 10px 18px;
+            width: 100%;
+        }
+        .btn-staticmap:hover { background: #155a9e; }
         .btn-copy {
             background: #e8edf2;
             color: #1a2a3a;
@@ -409,6 +417,7 @@
         <div id="url-box"><span class="url-base">https://</span><span style="color:#8fa8c0">— add a route or location to get started —</span></div>
         <div id="action-buttons">
             <button class="btn-open" onclick="openMap()">Open in maprouter ↗</button>
+            <button class="btn-staticmap" onclick="openStaticMap()">Open in Staticmap ↗</button>
             <button class="btn-copy" id="copy-btn" onclick="copyUrl()">Copy URL</button>
         </div>
         <div id="summary">Add routes and locations using the form on the left.</div>
@@ -842,6 +851,12 @@
         const url = buildUrl();
         if (!url) { alert("Please add at least one route stop or location marker first."); return; }
         window.open(url, "_blank");
+    }
+
+    function openStaticMap() {
+        const url = buildUrl();
+        if (!url) { alert("Please add at least one route stop or location marker first."); return; }
+        window.open(url.replace(/^maprouter\.php/, "staticmap.php"), "_blank");
     }
 
     /**
