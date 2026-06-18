@@ -870,12 +870,31 @@
     function copyUrl() {
         const url = buildUrl();
         if (!url) { alert("Please add at least one route stop or location marker first."); return; }
-        navigator.clipboard.writeText(window.location.origin + "/" + url).then(() => {
-            const btn = document.getElementById("copy-btn");
+        const fullUrl = window.location.origin + "/" + url;
+        const btn = document.getElementById("copy-btn");
+
+        function markCopied() {
             btn.textContent = "✓ Copied!";
             btn.classList.add("copied");
             setTimeout(() => { btn.textContent = "Copy URL"; btn.classList.remove("copied"); }, 2000);
-        });
+        }
+
+        function fallbackCopy() {
+            const ta = document.createElement("textarea");
+            ta.value = fullUrl;
+            ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            try { document.execCommand("copy"); markCopied(); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullUrl).then(markCopied).catch(fallbackCopy);
+        } else {
+            fallbackCopy();
+        }
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
