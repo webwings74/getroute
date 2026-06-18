@@ -12,6 +12,8 @@ A web application for displaying interactive routes and locations on a map, buil
 | `maprouter-builder.py` | Interactive Python command-line script to build and open a maprouter.php URL |
 | `mapicons.html` | Visual reference sheet of all 854 available map icons with live filter search |
 | `differences.md` | Comparison between the legacy `getroute.php` and `multiroute.php` (superseded by `maprouter.php`) |
+| `staticmap.php` | **Static image proxy** — returns a PNG map image via Mapbox Static API; accepts the same `route`/`location`/`color` parameters as `maprouter.php` |
+| `config.php` | Server-side configuration — holds the Mapbox API token for `staticmap.php` |
 
 ## Features
 
@@ -90,7 +92,17 @@ const config = {
 };
 ```
 
-### 4. Open the application
+### 4. Configure staticmap.php (optional)
+
+To enable static PNG map images via , create a  file in the same directory:
+
+
+
+Obtain a free Mapbox token at [mapbox.com](https://mapbox.com). The static map endpoint accepts the same , , and  parameters as  and returns a PNG image.
+
+
+
+### 5. Open the application
 Alternatively, use `mapbuilder.php` to build URLs interactively:
 ```
 python3 maprouter-builder.py
@@ -216,6 +228,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | [OpenRouteService](https://openrouteservice.org/) | Route calculation | Yes (free tier available) |
 | [Tracestrack](https://tracestrack.com/) | Topographic tile layer | Yes (free tier available) |
 | [Thunderforest](https://www.thunderforest.com/) | 10 additional map tile layers | Yes (free tier available) |
+| [Mapbox Static API](https://docs.mapbox.com/api/maps/static-images/) | Static PNG map images via `staticmap.php` | Yes (free tier: 50,000 req/month) |
 
 ---
 
@@ -235,6 +248,8 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-17 | `mapbuilder.php`: single-stop route blocks auto-promoted to location markers |
 | 2026-06-17 | `mapicons.html`: click popup with 3× icon preview and one-click URL copy |
 | 2026-06-17 | Renamed `maprouter-builder.php` to `mapbuilder.php` |
+| 2026-06-18 | Added `staticmap.php` — server-side static PNG map proxy using Mapbox Static API |
+| 2026-06-18 | Added `config.php` — server-side config for Mapbox API token |
 
 ---
 
