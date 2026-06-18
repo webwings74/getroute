@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- (c) Webwings 2025 -->
+    <!-- Maprouter Script -- Displaying locations, and/or routes in a browser(c) Webwings 2025 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webwings OpenStreetMap Route</title>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- (c) Webwings 2025 -->
+    <!-- Mapbuilder to create URL for maprouter.php -- (c) Webwings 2025 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webwings maprouter — URL Builder</title>
