@@ -103,6 +103,9 @@ Obtain a free Mapbox token at [mapbox.com](https://mapbox.com). The static map e
 
 
 ### 5. Open the application
+
+**Editing stops and locations in `mapbuilder.php`.** Each route stop has ▲ / ▼ buttons to reorder it within the route, and a 📍 button to move it out to a standalone location marker (if this leaves fewer than two stops in the route, the remaining stop is moved too and the route card is removed). Each location marker has a "move into route" control — pick a target route and position (start/end) and click the button to insert it back into a route as a stop.
+
 Alternatively, use `mapbuilder.php` to build URLs interactively:
 ```
 python3 maprouter-builder.py
@@ -274,6 +277,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-18 | `mapbuilder.php`: fixed URL import — `+` in query strings now correctly decoded as a space |
 | 2026-07-02 | `maprouter.php`: added a popup naming the provider when a rate limit or quota is hit (OpenRouteService/Nominatim), instead of failing silently |
 | 2026-07-02 | `maprouter.php`: `?table` panel now supports live editing — reorder route points, move a point to a standalone marker and back, with the URL kept in sync and a "Copy shareable URL" button |
+| 2026-07-02 | `mapbuilder.php`: added reorder (▲/▼) and move (📍 / "move into route") controls so stops and location markers can be rearranged before generating the URL |
 
 ---
 
