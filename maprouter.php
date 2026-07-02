@@ -878,7 +878,10 @@
                 row.innerHTML = `
                     <span class="point-label">${loc.text || loc.point}</span>
                     <div class="point-actions location-move">
-                        <select class="target-route" ${hasRoutes ? '' : 'disabled'}>${routeOptions}</select>
+                        <select class="target-route" ${hasRoutes ? '' : 'disabled'}>
+                            <option value="" selected disabled>${hasRoutes ? 'Choose route…' : 'No routes yet'}</option>
+                            ${routeOptions}
+                        </select>
                         <select class="target-position" ${hasRoutes ? '' : 'disabled'}>
                             <option value="end" selected>End</option>
                             <option value="start">Start</option>
@@ -887,7 +890,12 @@
                     </div>
                 `;
                 row.querySelector('[data-action="toroute"]').addEventListener('click', () => {
-                    const targetRoute = parseInt(row.querySelector('.target-route').value, 10);
+                    const targetRouteValue = row.querySelector('.target-route').value;
+                    if (targetRouteValue === '') {
+                        alert('Please choose which route to move this location into first.');
+                        return;
+                    }
+                    const targetRoute = parseInt(targetRouteValue, 10);
                     const position     = row.querySelector('.target-position').value;
                     moveLocationToRoute(locIndex, targetRoute, position);
                 });
