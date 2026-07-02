@@ -104,16 +104,19 @@ Obtain a free Mapbox token at [mapbox.com](https://mapbox.com). The static map e
 
 ### 5. Open the application
 
-**Editing stops and locations in `mapbuilder.php`.** Each route stop has ▲ / ▼ buttons to reorder it within the route, and a 📍 button to move it out to a standalone location marker (if this leaves fewer than two stops in the route, the remaining stop is moved too and the route card is removed). Each location marker has a "move into route" control — pick a target route and position (start/end) and click the button to insert it back into a route as a stop.
+You can build a `maprouter.php` URL by hand, or use one of the two builder tools below.
 
-Alternatively, use `mapbuilder.php` to build URLs interactively:
+```
+https://yourdomain.com/maprouter.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
+```
+
+**`mapbuilder.php` (recommended).** Browser-based GUI, no installation needed — just open it in a browser. Each route stop has ▲ / ▼ buttons to reorder it within the route, and a 📍 button to move it out to a standalone location marker (if this leaves fewer than two stops in the route, the remaining stop is moved too and the route card is removed). Each location marker has a "move into route" control — pick a target route and position (start/end) and click the button to insert it back into a route as a stop.
+
+**`maprouter-builder.py`.** An interactive Python command-line alternative. It still works correctly, but `mapbuilder.php` is recommended instead for ease of use — it's a visual, no-install GUI with live URL preview, whereas the Python script requires a local Python install and a terminal, and lacks the reorder/move controls described above.
 ```
 python3 maprouter-builder.py
 ```
 Set your domain in the `BASE_URL` constant at the top of the script.
-```
-https://yourdomain.com/maprouter.php?route=[...]&location=[...]&layer=[...]&section=[...]&profile=[...]
-```
 
 ---
 
@@ -278,6 +281,7 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-07-02 | `maprouter.php`: added a popup naming the provider when a rate limit or quota is hit (OpenRouteService/Nominatim), instead of failing silently |
 | 2026-07-02 | `maprouter.php`: `?table` panel now supports live editing — reorder route points, move a point to a standalone marker and back, with the URL kept in sync and a "Copy shareable URL" button |
 | 2026-07-02 | `mapbuilder.php`: added reorder (▲/▼) and move (📍 / "move into route") controls so stops and location markers can be rearranged before generating the URL |
+| 2026-07-02 | README: clarified that `maprouter-builder.py` still works correctly, but `mapbuilder.php` is recommended for ease of use |
 
 ---
 
