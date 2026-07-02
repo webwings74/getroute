@@ -857,10 +857,7 @@
                 <input type="url" placeholder="Icon URL (optional)" value="${esc(loc.icon)}"
                     oninput="updateLocation(${index}, 'icon', this.value)">
                 <div class="location-move-row">
-                    <select id="loc-target-route-${index}" ${hasRoutes ? "" : "disabled"}>
-                        <option value="" selected disabled>${hasRoutes ? "Choose route…" : "No routes yet"}</option>
-                        ${routeOptions}
-                    </select>
+                    <select id="loc-target-route-${index}" ${hasRoutes ? "" : "disabled"}>${routeOptions}</select>
                     <select id="loc-target-pos-${index}" ${hasRoutes ? "" : "disabled"}>
                         <option value="end" selected>End</option>
                         <option value="start">Start</option>
@@ -890,15 +887,10 @@
      * @param {number} locationIndex
      */
     function moveLocationToRoute(locationIndex) {
-        const routeValue = document.getElementById(`loc-target-route-${locationIndex}`).value;
-        if (routeValue === "") {
-            alert("Please choose which route to move this location into first.");
-            return;
-        }
-        const routeIndex = parseInt(routeValue, 10);
+        const routeIndex = parseInt(document.getElementById(`loc-target-route-${locationIndex}`).value, 10);
         const position    = document.getElementById(`loc-target-pos-${locationIndex}`).value;
         const route       = routes[routeIndex];
-        if (!route) return;
+        if (!route || isNaN(routeIndex)) return;
 
         const [loc] = locations.splice(locationIndex, 1);
         const stop  = { address: loc.address, text: loc.text, icon: loc.icon };
