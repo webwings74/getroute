@@ -91,16 +91,17 @@ const config = {
     openRouteServiceApiKey: "YOUR_OPENROUTESERVICE_API_KEY"
 };
 ```
+See [API keys](#api-keys) below for where to obtain each key and what the free tiers offer.
 
 ### 4. Configure staticmap.php (optional)
 
-To enable static PNG map images via , create a  file in the same directory:
+To enable static PNG map images via `staticmap.php`, create a `config.php` file in the same directory:
+```php
+<?php
+$mapboxToken = "YOUR_MAPBOX_TOKEN";
+```
 
-
-
-Obtain a free Mapbox token at [mapbox.com](https://mapbox.com). The static map endpoint accepts the same , , and  parameters as  and returns a PNG image.
-
-
+Obtain a free Mapbox token at [mapbox.com](https://mapbox.com) — see [API keys](#api-keys) below. The static map endpoint accepts the same `route`, `location`, and `color` parameters as `maprouter.php` and returns a PNG image.
 
 ### 5. Open the application
 
@@ -117,6 +118,25 @@ https://yourdomain.com/maprouter.php?route=[...]&location=[...]&layer=[...]&sect
 python3 maprouter-builder.py
 ```
 Set your domain in the `BASE_URL` constant at the top of the script.
+
+---
+
+## API keys
+
+`Nominatim` (geocoding) and the default `OpenStreetMap` tile layer need no key at all — everything else requires a free account. Only sign up for the ones you actually plan to use: skip Tracestrack/Thunderforest entirely if you're happy with the default OSM tiles, and skip Mapbox if you don't need `staticmap.php`.
+
+| Key | Used for | Where to get it | Free tier |
+|---|---|---|---|
+| `openRouteServiceApiKey` | Route calculation (`maprouter.php`) | [openrouteservice.org/dev/#/signup](https://openrouteservice.org/dev/#/signup) — create an account, then generate a key from your dashboard | 2,000 requests/day, 40 requests/minute |
+| `tracestrackApiKey` | Topographic tile layer (`&layer=topo`) | [tracestrack.com](https://tracestrack.com/) — sign up, then find your key on the account/API page | Free tier available (check current limits on their pricing page) |
+| `thunderforestApiKey` | 10 additional tile layers (cycle, transport, outdoors, etc.) | [thunderforest.com](https://www.thunderforest.com/) — sign up, then copy the key from your dashboard | 150,000 tiles/month |
+| Mapbox token (`$mapboxToken` in `config.php`) | Static PNG map images (`staticmap.php` only) | [account.mapbox.com/access-tokens](https://account.mapbox.com/access-tokens/) — sign up, then use the default public token or create a new one | 50,000 requests/month |
+
+**Where each key goes:**
+- `openRouteServiceApiKey`, `tracestrackApiKey`, `thunderforestApiKey` → `config.js` (see [step 3](#3-configure-api-keys) above)
+- Mapbox token → `config.php`, as `$mapboxToken` (see [step 4](#4-configure-staticmapphp-optional) above), only needed if you use `staticmap.php`
+
+**Running out of quota?** If routes stop building or tiles stop loading, you may have hit a provider's rate limit or daily quota. `maprouter.php` shows a popup naming the specific provider (and whether it's a rate limit or quota problem) when this happens, so check for that first before assuming something else is broken.
 
 ---
 
@@ -282,12 +302,14 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-07-02 | `maprouter.php`: `?table` panel now supports live editing — reorder route points, move a point to a standalone marker and back, with the URL kept in sync and a "Copy shareable URL" button |
 | 2026-07-02 | `mapbuilder.php`: added reorder (▲/▼) and move (📍 / "move into route") controls so stops and location markers can be rearranged before generating the URL |
 | 2026-07-02 | README: clarified that `maprouter-builder.py` still works correctly, but `mapbuilder.php` is recommended for ease of use |
+| 2026-07-02 | Changed licence from MIT to PolyForm Noncommercial 1.0.0 — free for noncommercial use, commercial use requires separate permission |
+| 2026-07-02 | README: added an "API keys" chapter listing every required key, what it's for, where to sign up, and free-tier limits; also fixed a broken paragraph in the `staticmap.php` setup step |
 
 ---
 
 ## Licence
 
-This project is licensed under the MIT Licence.
+This project is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). Free to use, modify, and share for any noncommercial purpose; commercial use requires separate permission from the licensor.
 
 Copyright © Richard, Webwings 2025
 
