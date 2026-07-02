@@ -122,6 +122,42 @@
         }
         .stop-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 
+        /* Move/reorder buttons on a stop row */
+        .stop-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 3px;
+            width: 44px;
+            flex-shrink: 0;
+        }
+        .btn-move {
+            background: #e8edf2;
+            color: #1a2a3a;
+            border: none;
+            border-radius: 4px;
+            width: 20px;
+            height: 20px;
+            font-size: 10px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-move:hover:not(:disabled) { background: #d0dae4; }
+        .btn-move:disabled { opacity: .35; cursor: default; }
+        .stop-actions .btn-danger {
+            width: 20px;
+            height: 20px;
+            font-size: 14px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* ── Location marker row ── */
         .location-row {
             display: flex;
@@ -138,6 +174,33 @@
             margin-top: 1px;
         }
         .location-fields { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+        /* "Move into route" controls on a location row */
+        .location-move-row {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            margin-top: 2px;
+        }
+        .location-move-row select {
+            font-size: 10px;
+            padding: 2px 3px;
+            flex: 1;
+            min-width: 0;
+        }
+        .btn-move-into {
+            background: #e8edf2;
+            color: #1a2a3a;
+            border: none;
+            border-radius: 4px;
+            font-size: 10px;
+            padding: 3px 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-move-into:hover:not(:disabled) { background: #d0dae4; }
+        .btn-move-into:disabled { opacity: .35; cursor: default; }
 
         /* ── Form controls ── */
         label {
@@ -498,6 +561,7 @@
         const index = routes.length;
         routes.push({ stops: [{ address: "", text: "", icon: "" }], colors: ["#000080"] });
         renderRoute(index);
+        refreshLocationsPanel(); // a new route becomes available as a "move into route" target
         updatePreview();
     }
 
@@ -615,6 +679,7 @@
         routes.splice(routeIndex, 1);
         document.getElementById("routes-container").innerHTML = "";
         routes.forEach((_, i) => renderRoute(i));
+        refreshLocationsPanel(); // route indices shifted — refresh "move into route" dropdowns
         updatePreview();
     }
 
@@ -627,7 +692,9 @@
      */
     function addStop(routeIndex) {
         routes[routeIndex].stops.push({ address: "", text: "", icon: "" });
-        renderStop(routeIndex, routes[routeIndex].stops.length - 1);
+        // Re-render every row (not just append) so the previous last row's
+        // "remove"/"move down" controls reflect that it's no longer last.
+        rerenderStops(routeIndex);
         updatePreview();
     }
 
@@ -638,8 +705,9 @@
      * @param {number} stopIndex
      */
     function renderStop(routeIndex, stopIndex) {
-        const container = document.getElementById(`stops-container-${routeIndex}`);
-        const stop      = routes[routeIndex].stops[stopIndex];
+        const container  = document.getElementById(`stops-container-${routeIndex}`);
+        const stopsCount = routes[routeIndex].stops.length;
+        const stop       = routes[routeIndex].stops[stopIndex];
 
         const row = document.createElement("div");
         row.className = "stop-row";
@@ -655,12 +723,76 @@
                 <input type="url" placeholder="Icon URL (optional)" value="${esc(stop.icon)}"
                     oninput="updateStop(${routeIndex}, ${stopIndex}, 'icon', this.value)">
             </div>
-            ${routes[routeIndex].stops.length > 1
-                ? `<button class="btn-danger" onclick="removeStop(${routeIndex}, ${stopIndex})" title="Remove stop">✕</button>`
-                : ""}
+            <div class="stop-actions">
+                <button class="btn-move" onclick="moveStopUp(${routeIndex}, ${stopIndex})" title="Move up" ${stopIndex === 0 ? "disabled" : ""}>&#9650;</button>
+                <button class="btn-move" onclick="moveStopDown(${routeIndex}, ${stopIndex})" title="Move down" ${stopIndex === stopsCount - 1 ? "disabled" : ""}>&#9660;</button>
+                <button class="btn-move" onclick="moveStopToLocation(${routeIndex}, ${stopIndex})" title="Move to a standalone location marker">&#128205;</button>
+                ${stopsCount > 1
+                    ? `<button class="btn-danger" onclick="removeStop(${routeIndex}, ${stopIndex})" title="Remove stop">✕</button>`
+                    : ""}
+            </div>
         `;
 
         container.appendChild(row);
+    }
+
+    /**
+     * Clears and re-renders every stop row of a route from current state.
+     * Used after reordering, removing, or moving a stop out.
+     *
+     * @param {number} routeIndex
+     */
+    function rerenderStops(routeIndex) {
+        const body = document.getElementById(`stops-container-${routeIndex}`);
+        body.innerHTML = "";
+        routes[routeIndex].stops.forEach((_, i) => renderStop(routeIndex, i));
+    }
+
+    /**
+     * Swaps a stop with its neighbour in the given direction.
+     *
+     * @param {number} routeIndex
+     * @param {number} stopIndex
+     * @param {number} direction - -1 to move up, +1 to move down
+     */
+    function moveStop(routeIndex, stopIndex, direction) {
+        const stops  = routes[routeIndex].stops;
+        const target = stopIndex + direction;
+        if (target < 0 || target >= stops.length) return;
+        [stops[stopIndex], stops[target]] = [stops[target], stops[stopIndex]];
+        rerenderStops(routeIndex);
+        updatePreview();
+    }
+
+    function moveStopUp(routeIndex, stopIndex)   { moveStop(routeIndex, stopIndex, -1); }
+    function moveStopDown(routeIndex, stopIndex) { moveStop(routeIndex, stopIndex, 1); }
+
+    /**
+     * Removes a stop from a route and moves it into the standalone location
+     * markers list. If the route drops below two stops, any remaining stop
+     * is also moved to locations and the (now unroutable) route is removed.
+     *
+     * @param {number} routeIndex
+     * @param {number} stopIndex
+     */
+    function moveStopToLocation(routeIndex, stopIndex) {
+        const route = routes[routeIndex];
+        if (!route) return;
+
+        const [stop] = route.stops.splice(stopIndex, 1);
+        locations.push({ address: stop.address, text: stop.text, icon: stop.icon });
+
+        if (route.stops.length < 2) {
+            route.stops.forEach(s => locations.push({ address: s.address, text: s.text, icon: s.icon }));
+            routes.splice(routeIndex, 1);
+            document.getElementById("routes-container").innerHTML = "";
+            routes.forEach((_, i) => renderRoute(i));
+        } else {
+            rerenderStops(routeIndex);
+        }
+
+        refreshLocationsPanel();
+        updatePreview();
     }
 
     /**
@@ -684,9 +816,7 @@
      */
     function removeStop(routeIndex, stopIndex) {
         routes[routeIndex].stops.splice(stopIndex, 1);
-        const body = document.getElementById(`stops-container-${routeIndex}`);
-        body.innerHTML = "";
-        routes[routeIndex].stops.forEach((_, i) => renderStop(routeIndex, i));
+        rerenderStops(routeIndex);
         updatePreview();
     }
 
@@ -710,6 +840,8 @@
     function renderLocation(index) {
         const container = document.getElementById("locations-container");
         const loc       = locations[index];
+        const hasRoutes = routes.length > 0;
+        const routeOptions = routes.map((_, i) => `<option value="${i}">Route ${i + 1}</option>`).join("");
 
         const row = document.createElement("div");
         row.className = "location-row";
@@ -724,11 +856,53 @@
                     oninput="updateLocation(${index}, 'text', this.value)">
                 <input type="url" placeholder="Icon URL (optional)" value="${esc(loc.icon)}"
                     oninput="updateLocation(${index}, 'icon', this.value)">
+                <div class="location-move-row">
+                    <select id="loc-target-route-${index}" ${hasRoutes ? "" : "disabled"}>${routeOptions}</select>
+                    <select id="loc-target-pos-${index}" ${hasRoutes ? "" : "disabled"}>
+                        <option value="end" selected>End</option>
+                        <option value="start">Start</option>
+                    </select>
+                    <button class="btn-move-into" onclick="moveLocationToRoute(${index})" ${hasRoutes ? "" : "disabled"} title="Move into route">&#8617; To route</button>
+                </div>
             </div>
             <button class="btn-danger" onclick="removeLocation(${index})" title="Remove marker">✕</button>
         `;
 
         container.appendChild(row);
+    }
+
+    /**
+     * Clears and re-renders every location row from current state. Also used
+     * to refresh each row's "move into route" dropdown after routes[] changes.
+     */
+    function refreshLocationsPanel() {
+        document.getElementById("locations-container").innerHTML = "";
+        locations.forEach((_, i) => renderLocation(i));
+    }
+
+    /**
+     * Moves a standalone location marker into the route/position selected in
+     * its row's dropdowns.
+     *
+     * @param {number} locationIndex
+     */
+    function moveLocationToRoute(locationIndex) {
+        const routeIndex = parseInt(document.getElementById(`loc-target-route-${locationIndex}`).value, 10);
+        const position    = document.getElementById(`loc-target-pos-${locationIndex}`).value;
+        const route       = routes[routeIndex];
+        if (!route || isNaN(routeIndex)) return;
+
+        const [loc] = locations.splice(locationIndex, 1);
+        const stop  = { address: loc.address, text: loc.text, icon: loc.icon };
+        if (position === "start") {
+            route.stops.unshift(stop);
+        } else {
+            route.stops.push(stop);
+        }
+
+        refreshLocationsPanel();
+        rerenderStops(routeIndex);
+        updatePreview();
     }
 
     /**
@@ -750,8 +924,7 @@
      */
     function removeLocation(index) {
         locations.splice(index, 1);
-        document.getElementById("locations-container").innerHTML = "";
-        locations.forEach((_, i) => renderLocation(i));
+        refreshLocationsPanel();
         updatePreview();
     }
 
@@ -1043,8 +1216,7 @@
         document.getElementById("routes-container").innerHTML    = "";
         routes.forEach((_, i) => renderRoute(i));
 
-        document.getElementById("locations-container").innerHTML = "";
-        locations.forEach((_, i) => renderLocation(i));
+        refreshLocationsPanel();
 
         updatePreview();
 

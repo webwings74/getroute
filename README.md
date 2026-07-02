@@ -103,6 +103,9 @@ Obtain a free Mapbox token at [mapbox.com](https://mapbox.com). The static map e
 
 
 ### 5. Open the application
+
+**Editing stops and locations in `mapbuilder.php`.** Each route stop has ▲ / ▼ buttons to reorder it within the route, and a 📍 button to move it out to a standalone location marker (if this leaves fewer than two stops in the route, the remaining stop is moved too and the route card is removed). Each location marker has a "move into route" control — pick a target route and position (start/end) and click the button to insert it back into a route as a stop.
+
 Alternatively, use `mapbuilder.php` to build URLs interactively:
 ```
 python3 maprouter-builder.py
@@ -178,6 +181,13 @@ Add `&table` (no value needed) to show a collapsible side panel with a detailed 
 Point labels use the `text` value if provided, otherwise the geocoded place name, otherwise a numbered fallback ("Point 1", "Point 2", …).
 
 The panel can be toggled open and closed at any time using the button on the left edge of the map.
+
+**Editing controls.** When the panel is open it also lets you rearrange the loaded data on the fly:
+- **Reorder** — use the ▲ / ▼ buttons next to a route point to move it up or down within its route.
+- **Move a route point to a standalone marker** — click the 📍 button next to a point. If this leaves fewer than two points in the route, the remaining point is also moved and the route is removed.
+- **Move a standalone marker into a route** — in the "Location markers" section, pick a target route and position (start/end), then click the move button.
+
+Every change updates the browser's address bar in place (via `history.replaceState`, no page reload) and redraws the map. A **"Copy shareable URL"** button at the top of the panel copies the current, edited URL to the clipboard so it can be saved or shared. Already-geocoded coordinates are reused for edits (no extra Nominatim requests), and OpenRouteService is only re-queried for the route(s) whose point sequence actually changed.
 
 ### `title`
 Sets the browser tab title for the map page. If omitted, the default title "Webwings OpenStreetMap Route" is used.
@@ -265,6 +275,9 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-06-18 | `mapbuilder.php`: added "Import URL" section — paste any maprouter.php URL to reverse-populate all routes, locations, and options in the sidebar |
 | 2026-06-18 | Added `&title=` parameter — sets the browser tab title; supported in both `maprouter.php` and `mapbuilder.php` |
 | 2026-06-18 | `mapbuilder.php`: fixed URL import — `+` in query strings now correctly decoded as a space |
+| 2026-07-02 | `maprouter.php`: added a popup naming the provider when a rate limit or quota is hit (OpenRouteService/Nominatim), instead of failing silently |
+| 2026-07-02 | `maprouter.php`: `?table` panel now supports live editing — reorder route points, move a point to a standalone marker and back, with the URL kept in sync and a "Copy shareable URL" button |
+| 2026-07-02 | `mapbuilder.php`: added reorder (▲/▼) and move (📍 / "move into route") controls so stops and location markers can be rearranged before generating the URL |
 
 ---
 

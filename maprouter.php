@@ -36,6 +36,7 @@
             border-radius: 8px;
             box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
             z-index: 1000;
+            display: none;
         }
 
         /* ── Side panel ─────────────────────────────────────────────────── */
@@ -91,6 +92,21 @@
             padding: 12px;
         }
 
+        /* Copy-URL button at the top of the panel */
+        #copy-url-btn {
+            width: 100%;
+            background: #1a2a3a;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 9px;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+        #copy-url-btn:hover { background: #243447; }
+
         /* Route section inside the panel */
         .route-section {
             margin-bottom: 20px;
@@ -102,6 +118,65 @@
             margin: 0 0 6px 0;
             padding-bottom: 4px;
             border-bottom: 2px solid #1a2a3a;
+        }
+
+        /* Point management list (reorder / move controls) */
+        .points-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        .point-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            background: #f7f9fb;
+            border: 1px solid #e8edf2;
+            border-radius: 5px;
+            padding: 5px 7px;
+            font-size: 11px;
+            color: #2c3e50;
+        }
+        .point-label {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .point-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .btn-icon {
+            background: #e8edf2;
+            color: #1a2a3a;
+            border: none;
+            border-radius: 4px;
+            width: 22px;
+            height: 22px;
+            font-size: 10px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .btn-icon:hover:not(:disabled) { background: #d0dae4; }
+        .btn-icon:disabled { opacity: .35; cursor: default; }
+        .location-move select {
+            font-size: 10px;
+            padding: 2px 3px;
+            border: 1px solid #c8d4e0;
+            border-radius: 4px;
+            background: #fff;
+            max-width: 74px;
         }
 
         /* Segment table */
@@ -199,6 +274,16 @@
      * standalone locations, selectable tile layers, and an optional
      * collapsible side panel with per-route segment tables (?table).
      *
+     * When ?table is active, the side panel also lets you rearrange the
+     * loaded data: move a route point out to a standalone location marker,
+     * move a location marker into an existing route, and reorder points
+     * within a route. Every change updates the browser URL in place (so the
+     * result can be copied/shared or survives a refresh) and re-renders the
+     * map. Already-geocoded coordinates are cached on each point, and each
+     * route's computed geometry is cached by its point sequence, so editing
+     * never re-queries Nominatim and only re-queries OpenRouteService for
+     * routes whose composition actually changed.
+     *
      * URL parameters:
      *   route    — JSON array of route points (repeat for multiple routes)
      *   location — JSON array of standalone location markers
@@ -238,6 +323,31 @@
     let apiErrors         = [];               // { provider, status } entries for rate-limit/quota errors
     let routeErrors       = [];               // { routeIndex, message } entries for other route failures
 
+    /**
+     * tableData holds the collected segment data for the side panel.
+     * Structure: [ { routeLabel, segments: [ { from, to, distance, duration } ] } ]
+     */
+    let tableData = [];
+
+    // ── Editable state (seeded once from the URL, then mutated by panel actions) ──
+    let routesState    = []; // Array of routes; each route is an array of geocoded point objects
+    let locationsState = []; // Array of geocoded point objects (standalone markers)
+    let colorState      = []; // Array of color arrays, parallel to routesState
+
+    // Leaflet layers added by renderAll() — cleared and rebuilt on every render
+    let dynamicLayers = [];
+
+    // Cache of computed route geometry, keyed by the route's ordered coordinate
+    // sequence. A cache hit means the route's point order hasn't changed since
+    // it was last computed, so no fresh OpenRouteService request is needed.
+    const routeGeometryCache = new Map();
+
+    // Options parsed once at load time; these don't change while editing.
+    let sectionFlag      = false;
+    let profileValue     = "driving-car";
+    let requestedZoomVal  = null;
+    let showTableFlag    = false;
+
     // HTTP statuses that typically indicate a provider rate limit or exhausted quota
     const API_LIMIT_STATUSES = new Set([429, 403]);
 
@@ -262,12 +372,6 @@
         }
         throw new Error(`${label}: ${response.status}`);
     }
-
-    /**
-     * tableData holds the collected segment data for the side panel.
-     * Structure: [ { routeLabel, segments: [ { from, to, distance, duration } ] } ]
-     */
-    let tableData = [];
 
     // ── Map initialisation ──────────────────────────────────────────────────
     var map = L.map('map').setView([52.3676, 4.9041], 10);
@@ -386,16 +490,14 @@
     }
 
     /**
-     * Returns the CSS color string for a given route and segment index.
-     * Cycles through color arrays (per route) and colors within each array (per segment).
+     * Returns the CSS color string for a given segment index within a route,
+     * cycling through the route's color array.
      *
-     * @param {string[][]} colorParams - Array of color arrays
-     * @param {number} routeIndex      - Zero-based route index
-     * @param {number} segmentIndex    - Zero-based segment index within the route
+     * @param {string[]} colors     - Color array for this route
+     * @param {number} segmentIndex - Zero-based segment index within the route
      * @returns {string}
      */
-    function getSegmentColor(colorParams, routeIndex, segmentIndex) {
-        const colors = colorParams[routeIndex % colorParams.length];
+    function getSegmentColor(colors, segmentIndex) {
         return colors[segmentIndex % colors.length];
     }
 
@@ -456,6 +558,44 @@
         }
     }
 
+    /**
+     * Geocodes a flat list of point specs via Nominatim (one request each).
+     * Points that can't be found are recorded in notFoundLocations and resolve
+     * to null in the result array (same order as the input).
+     *
+     * @param {Object[]} specs - Array of { point, text, icon }
+     * @returns {Promise<Array<Object|null>>}
+     */
+    function geocodeAll(specs) {
+        return Promise.all(specs.map(spec => {
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(spec.point)}`;
+            return fetch(url)
+                .then(r => {
+                    if (!r.ok) throwFetchError('Nominatim (geocoding)', r, 'Error fetching location');
+                    return r.json();
+                })
+                .then(data => {
+                    if (data.length === 0) {
+                        console.error("Location not found: " + spec.point);
+                        notFoundLocations.push(spec.point);
+                        return null;
+                    }
+                    return {
+                        point:       spec.point,
+                        text:        spec.text,
+                        icon:        spec.icon,
+                        lat:         parseFloat(data[0].lat),
+                        lon:         parseFloat(data[0].lon),
+                        displayName: data[0].display_name.split(",")[0]
+                    };
+                })
+                .catch(error => {
+                    console.error("Error fetching location data:", error);
+                    return null;
+                });
+        }));
+    }
+
     // ── Side panel ────────────────────────────────────────────────────────────
 
     function fmtDuration(seconds) {
@@ -487,26 +627,191 @@
     document.getElementById('panel-close').addEventListener('click', () => setPanelOpen(false));
 
     /**
-     * Builds the HTML for the side panel from the collected tableData and injects it.
-     * Called after all routes have been rendered.
-     * Each route gets its own section with a segment table and a totals row.
+     * Rebuilds the current page URL (path + query string) from routesState,
+     * locationsState and colorState, preserving the other option parameters
+     * that were present on the original URL (title, profile, layer, zoom,
+     * section, table).
+     *
+     * @returns {string}
+     */
+    function buildShareableUrl() {
+        const parts = [];
+
+        routesState.forEach((route, i) => {
+            const pts = route.map(p => {
+                const o = { point: p.point };
+                if (p.text) o.text = p.text;
+                if (p.icon && p.icon !== defaultIconUrl) o.icon = p.icon;
+                return o;
+            });
+            parts.push(`route=${encodeURIComponent(JSON.stringify(pts))}`);
+            const colors = (colorState[i] && colorState[i].length) ? colorState[i] : ['navy'];
+            parts.push(`color=${encodeURIComponent(JSON.stringify(colors))}`);
+        });
+
+        if (locationsState.length > 0) {
+            const locs = locationsState.map(p => {
+                const o = { point: p.point };
+                if (p.text) o.text = p.text;
+                if (p.icon && p.icon !== defaultIconUrl) o.icon = p.icon;
+                return o;
+            });
+            parts.push(`location=${encodeURIComponent(JSON.stringify(locs))}`);
+        }
+
+        ['title', 'profile', 'layer', 'zoom'].forEach(key => {
+            const v = urlParams.get(key);
+            if (v) parts.push(`${key}=${encodeURIComponent(v)}`);
+        });
+        if (urlParams.get('section') === 'true') parts.push('section=true');
+        if (urlParams.has('table')) parts.push('table');
+
+        return window.location.pathname + (parts.length ? '?' + parts.join('&') : '');
+    }
+
+    /**
+     * Persists the current editable state into the browser URL (without
+     * reloading the page) and re-renders the map to reflect it.
+     */
+    function syncUrlAndRerender() {
+        history.replaceState(null, '', buildShareableUrl());
+        renderAll();
+    }
+
+    /**
+     * Copies the current (already up to date) page URL to the clipboard.
+     */
+    function copyShareableUrl() {
+        const fullUrl = window.location.href;
+        const btn = document.getElementById('copy-url-btn');
+
+        function markCopied() {
+            const original = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => { btn.textContent = original; }, 2000);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullUrl).then(markCopied).catch(() => alert('Could not copy URL:\n' + fullUrl));
+        } else {
+            alert(fullUrl);
+        }
+    }
+
+    /**
+     * Swaps a route point with its neighbour in the given direction, then
+     * persists and re-renders.
+     *
+     * @param {number} routeIndex
+     * @param {number} pointIndex
+     * @param {number} direction - -1 to move up, +1 to move down
+     */
+    function moveRoutePoint(routeIndex, pointIndex, direction) {
+        const route = routesState[routeIndex];
+        if (!route) return;
+        const target = pointIndex + direction;
+        if (target < 0 || target >= route.length) return;
+        [route[pointIndex], route[target]] = [route[target], route[pointIndex]];
+        syncUrlAndRerender();
+    }
+
+    /**
+     * Removes a point from a route and appends it to locationsState. If the
+     * route drops below two points, any remaining point is also moved to
+     * locationsState and the (now unroutable) route is discarded.
+     *
+     * @param {number} routeIndex
+     * @param {number} pointIndex
+     */
+    function moveRoutePointToLocation(routeIndex, pointIndex) {
+        const route = routesState[routeIndex];
+        if (!route) return;
+
+        const [point] = route.splice(pointIndex, 1);
+        locationsState.push(point);
+
+        if (route.length < 2) {
+            route.forEach(p => locationsState.push(p));
+            routesState.splice(routeIndex, 1);
+            colorState.splice(routeIndex, 1);
+        }
+
+        syncUrlAndRerender();
+    }
+
+    /**
+     * Moves a standalone location marker into an existing route, at the
+     * start or the end.
+     *
+     * @param {number} locationIndex
+     * @param {number} routeIndex
+     * @param {'start'|'end'} position
+     */
+    function moveLocationToRoute(locationIndex, routeIndex, position) {
+        const route = routesState[routeIndex];
+        if (!route) return;
+
+        const [point] = locationsState.splice(locationIndex, 1);
+        if (position === 'start') {
+            route.unshift(point);
+        } else {
+            route.push(point);
+        }
+
+        syncUrlAndRerender();
+    }
+
+    /**
+     * Builds the HTML for the side panel: a "copy URL" action, one section
+     * per route (point-management list + segment stats table), and a
+     * "Location markers" section (if any) with controls to move each one
+     * into an existing route.
      */
     function buildTablePanel() {
         const content = document.getElementById('panel-content');
         content.innerHTML = '';
 
-        tableData.filter(Boolean).forEach(route => {
+        const copyBtn = document.createElement('button');
+        copyBtn.id = 'copy-url-btn';
+        copyBtn.textContent = '\u{1F4CB} Copy shareable URL';
+        copyBtn.addEventListener('click', copyShareableUrl);
+        content.appendChild(copyBtn);
+
+        routesState.forEach((route, routeIndex) => {
+            const entry = tableData[routeIndex];
+            if (!entry) return; // route failed to compute — nothing to show
+
             const section = document.createElement('div');
             section.className = 'route-section';
 
             const heading = document.createElement('h3');
-            heading.textContent = route.routeLabel;
+            heading.textContent = entry.routeLabel;
             section.appendChild(heading);
 
+            // ── Point management list ──
+            const pointsList = document.createElement('div');
+            pointsList.className = 'points-list';
+            route.forEach((point, pointIndex) => {
+                const row = document.createElement('div');
+                row.className = 'point-row';
+                row.innerHTML = `
+                    <span class="point-label">${pointIndex + 1}. ${pointLabel(point, pointIndex)}</span>
+                    <div class="point-actions">
+                        <button class="btn-icon" data-action="up" ${pointIndex === 0 ? 'disabled' : ''} title="Move up">&#9650;</button>
+                        <button class="btn-icon" data-action="down" ${pointIndex === route.length - 1 ? 'disabled' : ''} title="Move down">&#9660;</button>
+                        <button class="btn-icon" data-action="tolocation" title="Move to a standalone location marker">&#128205;</button>
+                    </div>
+                `;
+                row.querySelector('[data-action="up"]').addEventListener('click', () => moveRoutePoint(routeIndex, pointIndex, -1));
+                row.querySelector('[data-action="down"]').addEventListener('click', () => moveRoutePoint(routeIndex, pointIndex, 1));
+                row.querySelector('[data-action="tolocation"]').addEventListener('click', () => moveRoutePointToLocation(routeIndex, pointIndex));
+                pointsList.appendChild(row);
+            });
+            section.appendChild(pointsList);
+
+            // ── Segment stats table ──
             const table = document.createElement('table');
             table.className = 'route-table';
-
-            // Header row
             table.innerHTML = `
                 <thead>
                     <tr>
@@ -522,7 +827,7 @@
             let totalDist = 0;
             let totalDur  = 0;
 
-            route.segments.forEach(seg => {
+            entry.segments.filter(Boolean).forEach(seg => {
                 totalDist += seg.distance;
                 totalDur  += seg.duration;
 
@@ -554,6 +859,44 @@
             content.appendChild(section);
         });
 
+        // ── Location markers section ──
+        if (locationsState.length > 0) {
+            const locSection = document.createElement('div');
+            locSection.className = 'route-section';
+
+            const heading = document.createElement('h3');
+            heading.textContent = 'Location markers';
+            locSection.appendChild(heading);
+
+            locationsState.forEach((loc, locIndex) => {
+                const row = document.createElement('div');
+                row.className = 'point-row';
+
+                const routeOptions = routesState.map((_, i) => `<option value="${i}">Route ${i + 1}</option>`).join('');
+                const hasRoutes = routesState.length > 0;
+
+                row.innerHTML = `
+                    <span class="point-label">${loc.text || loc.point}</span>
+                    <div class="point-actions location-move">
+                        <select class="target-route" ${hasRoutes ? '' : 'disabled'}>${routeOptions}</select>
+                        <select class="target-position" ${hasRoutes ? '' : 'disabled'}>
+                            <option value="end" selected>End</option>
+                            <option value="start">Start</option>
+                        </select>
+                        <button class="btn-icon" data-action="toroute" ${hasRoutes ? '' : 'disabled'} title="Move into route">&#8617;</button>
+                    </div>
+                `;
+                row.querySelector('[data-action="toroute"]').addEventListener('click', () => {
+                    const targetRoute = parseInt(row.querySelector('.target-route').value, 10);
+                    const position     = row.querySelector('.target-position').value;
+                    moveLocationToRoute(locIndex, targetRoute, position);
+                });
+                locSection.appendChild(row);
+            });
+
+            content.appendChild(locSection);
+        }
+
         // Open the panel automatically after building
         setPanelOpen(true);
     }
@@ -577,50 +920,90 @@
         routeErrors       = [];
         tableData         = [];
 
-        const routes        = getRoutesFromQuery();
-        const locations     = getLocationsFromQuery();
-        const section       = urlParams.get("section") === "true";
-        const profile       = urlParams.get("profile") || "driving-car";
-        const requestedZoom = getRequestedZoom();
-        const colorParams   = getColorParams();
-        const multiRoute    = routes.length > 1;
-        const showTable     = urlParams.has("table");
+        const initialRoutes    = getRoutesFromQuery();
+        const initialLocations = getLocationsFromQuery();
+        const colorParams      = getColorParams();
+
+        sectionFlag     = urlParams.get("section") === "true";
+        profileValue    = urlParams.get("profile") || "driving-car";
+        requestedZoomVal = getRequestedZoom();
+        showTableFlag   = urlParams.has("table");
 
         // Hide the panel toggle button when ?table is not requested
-        if (!showTable) {
+        if (!showTableFlag) {
             document.getElementById('panel-toggle').style.display = 'none';
             document.getElementById('table-panel').style.display  = 'none';
         }
 
-        // In multi-route mode, remove the single-route overlay from the DOM
-        if (multiRoute) {
-            const container = document.getElementById("duration-container");
-            if (container) container.remove();
-        }
+        // Geocode every point (routes flattened + standalone locations) once, up front
+        const allSpecs = [];
+        initialRoutes.forEach(route => route.forEach(p => allSpecs.push(p)));
+        initialLocations.forEach(p => allSpecs.push(p));
 
-        const promises = [];
+        geocodeAll(allSpecs).then(geocoded => {
+            let cursor = 0;
 
-        // Process standalone location markers
-        if (locations.length > 0) {
-            promises.push(renderLocations(locations));
-        }
+            initialRoutes.forEach((route, i) => {
+                const resolved = route.map(() => geocoded[cursor++]);
+                if (resolved.length >= 2 && resolved.every(Boolean)) {
+                    routesState.push(resolved);
+                    colorState.push(colorParams[i % colorParams.length]);
+                }
+                // Routes with a missing point are dropped; the missing address
+                // is already reported via notFoundLocations below.
+            });
 
-        // Pre-allocate tableData slots in correct route order before any async work
-        if (showTable) {
-            routes.forEach((_, index) => { tableData[index] = null; });
-        }
+            initialLocations.forEach(() => {
+                const resolved = geocoded[cursor++];
+                if (resolved) locationsState.push(resolved);
+            });
 
-        // Process each route
-        routes.forEach((route, index) => {
-            if (route.length > 0) {
-                promises.push(plotRoutes(route, section, profile, index, colorParams, multiRoute, showTable));
+            if (notFoundLocations.length > 0) {
+                const list = notFoundLocations.map(loc => `• ${loc}`).join('\n');
+                alert(`The following location(s) could not be found:\n\n${list}`);
+            }
+
+            return renderAll();
+        }).then(() => {
+            // No input at all — fall back to geolocation or Amsterdam
+            if (routesState.length === 0 && locationsState.length === 0) {
+                useGeolocationFallback();
             }
         });
+    });
 
-        // After all rendering: report errors, fit map, build table panel if requested
-        Promise.all(promises).then(() => {
-            // Provider rate-limit / quota errors take priority — they explain why
-            // routes or locations may be missing, and name the responsible provider.
+    /**
+     * Clears everything previously drawn on the map and redraws it from
+     * routesState / locationsState. Called on initial load and after every
+     * panel edit (move / reorder). Reports any provider errors encountered
+     * while (re)computing routes, fits the map to the new bounds, and
+     * rebuilds the side panel when ?table is active.
+     *
+     * @returns {Promise}
+     */
+    function renderAll() {
+        dynamicLayers.forEach(layer => map.removeLayer(layer));
+        dynamicLayers = [];
+
+        bounds        = L.latLngBounds();
+        tableData      = [];
+        totalDistance = 0;
+        totalDuration = 0;
+        apiErrors     = [];
+        routeErrors   = [];
+
+        const multiRoute = routesState.length > 1;
+
+        const durationContainer = document.getElementById("duration-container");
+        if (durationContainer) durationContainer.style.display = "none";
+
+        locationsState.forEach(loc => drawLocationMarker(loc));
+
+        const routePromises = routesState.map((route, routeIndex) =>
+            drawRoute(route, routeIndex, colorState[routeIndex] || ['navy'], sectionFlag, profileValue, multiRoute, showTableFlag)
+        );
+
+        return Promise.all(routePromises).then(() => {
             if (apiErrors.length > 0) {
                 const list = apiErrors.map(e => {
                     const reason = e.status === 429
@@ -637,22 +1020,13 @@
                 alert(`The following route(s) could not be calculated:\n\n${list}`);
             }
 
-            if (notFoundLocations.length > 0) {
-                const list = notFoundLocations.map(loc => `• ${loc}`).join('\n');
-                alert(`The following location(s) could not be found:\n\n${list}`);
-            }
-            fitMap(requestedZoom);
+            fitMap(requestedZoomVal);
 
-            if (showTable && tableData.length > 0) {
+            if (showTableFlag) {
                 buildTablePanel();
             }
         });
-
-        // No input at all — fall back to geolocation or Amsterdam
-        if (routes.length === 0 && locations.length === 0) {
-            useGeolocationFallback();
-        }
-    });
+    }
 
     // ── Map fitting ───────────────────────────────────────────────────────────
 
@@ -715,153 +1089,121 @@
     // ── Standalone location rendering ─────────────────────────────────────────
 
     /**
-     * Geocodes an array of standalone locations via Nominatim and adds markers to the map.
-     * Missing locations are recorded in notFoundLocations.
+     * Draws a single standalone location marker on the map. Coordinates are
+     * assumed to already be geocoded (see geocodeAll). The lone/prominent
+     * "start" icon is used only when this is literally the only location
+     * marker currently on the map and no custom icon was set.
      *
-     * @param {Object[]} locations - Array of location point objects { point, text, icon }
-     * @returns {Promise}
+     * @param {Object} loc - Geocoded location point { point, text, icon, lat, lon }
      */
-    function renderLocations(locations) {
-        return new Promise((resolve) => {
-            const fetches = locations.map(location => {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location.point)}`;
-                return fetch(url).then(r => {
-                    if (!r.ok) throwFetchError('Nominatim (geocoding)', r, 'Error fetching location');
-                    return r.json();
-                });
-            });
+    function drawLocationMarker(loc) {
+        const iconUrl = (locationsState.length === 1 && !loc.icon) ? startIconUrl : (loc.icon || defaultIconUrl);
 
-            Promise.all(fetches)
-                .then(results => {
-                    results.forEach((result, index) => {
-                        if (result.length > 0) {
-                            const coord    = { lat: parseFloat(result[0].lat), lon: parseFloat(result[0].lon) };
-                            const location = locations[index];
-                            const iconUrl  = (locations.length === 1 && !location.icon) ? startIconUrl : (location.icon || defaultIconUrl);
+        const marker = L.marker([loc.lat, loc.lon], {
+            icon: L.icon({
+                iconUrl,
+                iconSize:    [iconWidth, iconHeight],
+                iconAnchor:  [iconWidth / 2, iconHeight],
+                popupAnchor: [0, popupOffset]
+            })
+        }).addTo(map);
+        dynamicLayers.push(marker);
 
-                            const marker = L.marker([coord.lat, coord.lon], {
-                                icon: L.icon({
-                                    iconUrl:     iconUrl,
-                                    iconSize:    [iconWidth, iconHeight],
-                                    iconAnchor:  [iconWidth / 2, iconHeight],
-                                    popupAnchor: [0, popupOffset]
-                                })
-                            }).addTo(map);
-
-                            marker.bindPopup(location.text || location.point);
-                            marker.on('mouseover', function () { this.openPopup(); });
-                            marker.on('mouseout',  function () { this.closePopup(); });
-                            bounds.extend([coord.lat, coord.lon]);
-                        } else {
-                            console.error("Location not found: " + locations[index].point);
-                            notFoundLocations.push(locations[index].point);
-                        }
-                    });
-                    resolve();
-                })
-                .catch(error => {
-                    console.error("Error fetching location data:", error);
-                    resolve();
-                });
-        });
+        marker.bindPopup(loc.text || loc.point);
+        marker.on('mouseover', function () { this.openPopup(); });
+        marker.on('mouseout',  function () { this.closePopup(); });
+        bounds.extend([loc.lat, loc.lon]);
     }
 
     // ── Route rendering ───────────────────────────────────────────────────────
 
     /**
-     * Geocodes all points in a route, pre-calculates totals, then draws each segment.
-     * Also initialises a tableData entry for this route if ?table is active.
+     * Returns a cache key that uniquely identifies a route's ordered sequence
+     * of coordinates. Two routes (or the same route before/after an edit that
+     * didn't change point order) with identical keys have identical geometry,
+     * so a previously computed result can be reused without calling ORS again.
      *
-     * @param {Object[]} route         - Array of route point objects { point, text, icon }
+     * @param {Object[]} route
+     * @returns {string}
+     */
+    function routeCacheKey(route) {
+        return route.map(p => `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`).join('>');
+    }
+
+    /**
+     * Draws one route on the map: fetches (or reuses cached) total route data
+     * and per-segment geometry from OpenRouteService, then plots each segment.
+     * Populates a tableData entry when table mode is active.
+     *
+     * @param {Object[]} route         - Array of geocoded point objects
+     * @param {number} routeIndex      - Zero-based index of this route
+     * @param {string[]} colors        - Color array for this route
      * @param {boolean} section        - Show per-segment stats in waypoint popups
      * @param {string} profile         - OpenRouteService routing profile
-     * @param {number} routeIndex      - Zero-based index of this route
-     * @param {string[][]} colorParams - Parsed color arrays
      * @param {boolean} multiRoute     - True when more than one route is being rendered
      * @param {boolean} showTable      - True when ?table is present in the URL
      * @returns {Promise}
      */
-    function plotRoutes(route, section, profile, routeIndex, colorParams, multiRoute, showTable) {
-        const fetches = route.map(point => {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(point.point)}`;
-            return fetch(url).then(r => {
-                if (!r.ok) throwFetchError('Nominatim (geocoding)', r, 'Error fetching location');
-                return r.json();
-            });
-        });
+    function drawRoute(route, routeIndex, colors, section, profile, multiRoute, showTable) {
+        if (route.length < 2) return Promise.resolve();
 
-        return Promise.all(fetches)
-            .then(locations => {
-                const coordinates  = [];
-                const localNotFound = [];
+        let tableEntry = null;
+        if (showTable) {
+            const startLabel = pointLabel(route[0], 0);
+            const routeLabel = multiRoute ? `Route ${routeIndex + 1} — ${startLabel}` : startLabel;
+            tableEntry = { routeLabel, segments: [] };
+            tableData[routeIndex] = tableEntry;
+        }
 
-                locations.forEach((location, index) => {
-                    if (location.length > 0) {
-                        coordinates.push({
-                            lat:         parseFloat(location[0].lat),
-                            lon:         parseFloat(location[0].lon),
-                            displayName: location[0].display_name.split(",")[0],
-                            text:        route[index].text,
-                            icon:        route[index].icon
-                        });
-                    } else {
-                        console.error("Location not found: " + route[index].point);
-                        localNotFound.push(route[index].point);
-                        notFoundLocations.push(route[index].point);
-                    }
-                });
+        const cacheKey = routeCacheKey(route);
+        const cached   = routeGeometryCache.get(cacheKey);
 
-                if (localNotFound.length > 0) {
-                    const err = new Error("Some locations could not be found: " + localNotFound.join(", "));
-                    err.isLocationNotFound = true;
-                    throw err;
+        const totalPromise = cached
+            ? Promise.resolve(cached.total)
+            : calculateTotalRouteData(route, profile);
+
+        return totalPromise
+            .then(({ totalDuration: routeDuration, totalDistance: routeDistance }) => {
+                const segmentPromises = [];
+                for (let i = 0; i < route.length - 1; i++) {
+                    const color     = getSegmentColor(colors, i);
+                    const cachedLeg = cached ? cached.legs[i] : null;
+                    segmentPromises.push(plotSegment(
+                        route[i],
+                        route[i + 1],
+                        color,
+                        section,
+                        profile,
+                        i === 0,
+                        i === route.length - 2,
+                        routeDuration,
+                        routeDistance,
+                        multiRoute,
+                        tableEntry,
+                        i,
+                        cachedLeg
+                    ));
                 }
-
-                // Prepare a tableData slot for this route (filled per segment below)
-                let tableEntry = null;
-                if (showTable) {
-                    const startLabel = pointLabel(coordinates[0], 0);
-                    const routeLabel = multiRoute
-                        ? `Route ${routeIndex + 1} — ${startLabel}`
-                        : startLabel;
-                    tableEntry = { routeLabel, segments: [] };
-                    tableData[routeIndex] = tableEntry;
-                }
-
-                return calculateTotalRouteData(coordinates, profile)
-                    .then(({ totalDuration: routeDuration, totalDistance: routeDistance }) => {
-                        const segmentPromises = [];
-                        for (let i = 0; i < coordinates.length - 1; i++) {
-                            const color = getSegmentColor(colorParams, routeIndex, i);
-                            segmentPromises.push(plotSegment(
-                                coordinates[i],
-                                coordinates[i + 1],
-                                color,
-                                section,
-                                profile,
-                                i === 0,
-                                i === coordinates.length - 2,
-                                routeDuration,
-                                routeDistance,
-                                multiRoute,
-                                tableEntry,
-                                i
-                            ));
-                        }
-                        return Promise.all(segmentPromises);
+                return Promise.all(segmentPromises).then(legs => {
+                    routeGeometryCache.set(cacheKey, {
+                        total: { totalDuration: routeDuration, totalDistance: routeDistance },
+                        legs
                     });
+                });
             })
             .catch(error => {
                 console.error("Error processing route:", error);
-                if (!error.isApiLimit && !error.isLocationNotFound) {
+                if (!error.isApiLimit) {
                     routeErrors.push({ routeIndex, message: error.message });
                 }
             });
     }
 
     /**
-     * Fetches a single route segment from OpenRouteService and draws it on the map.
-     * Appends segment data to tableEntry when table mode is active.
+     * Draws a single route segment on the map (polyline + start/end markers),
+     * and appends its data to tableEntry when table mode is active. When
+     * cachedLeg is provided, the previously fetched geometry/distance/duration
+     * is reused and no OpenRouteService request is made.
      *
      * Start marker behaviour:
      *   - Multi-route: popup shows total distance and travel time for this route.
@@ -881,11 +1223,12 @@
      * @param {boolean} multiRoute     - True when more than one route is being rendered
      * @param {Object|null} tableEntry - tableData entry to append segment data to, or null
      * @param {number} segmentIndex    - Zero-based index of this segment within the route
-     * @returns {Promise<{distance: number, duration: number}>}
+     * @param {Object|null} cachedLeg  - Previously computed { distance, duration, coords }, if any
+     * @returns {Promise<{distance: number, duration: number, coords: Array}>}
      */
     function plotSegment(start, end, color, section, profile, isFirstSegment, isLastSegment,
-                         routeDuration, routeDistance, multiRoute, tableEntry, segmentIndex) {
-        return new Promise((resolve, reject) => {
+                         routeDuration, routeDistance, multiRoute, tableEntry, segmentIndex, cachedLeg) {
+        const draw = (routeCoords, distance, duration) => {
             const startIcon = L.icon({
                 iconUrl:     start.icon ? start.icon : (isFirstSegment ? startIconUrl : defaultIconUrl),
                 iconSize:    [iconWidth, iconHeight],
@@ -900,105 +1243,113 @@
                 popupAnchor: [0, popupOffset]
             });
 
-            const routeUrl = `https://api.openrouteservice.org/v2/directions/${profile}?api_key=${openRouteServiceApiKey}&start=${start.lon},${start.lat}&end=${end.lon},${end.lat}`;
+            const polyline = L.polyline(routeCoords, { color, weight: 5 }).addTo(map);
+            dynamicLayers.push(polyline);
 
-            fetch(routeUrl)
-                .then(r => {
-                    if (!r.ok) throwFetchError('OpenRouteService (routing)', r, 'HTTP error');
-                    return r.json();
-                })
-                .then(routeData => {
-                    const routeCoords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
-                    L.polyline(routeCoords, { color, weight: 5 }).addTo(map);
+            routeCoords.forEach(c => bounds.extend(c));
+            bounds.extend([start.lat, start.lon]);
+            bounds.extend([end.lat, end.lon]);
 
-                    routeCoords.forEach(c => bounds.extend(c));
-                    bounds.extend([start.lat, start.lon]);
-                    bounds.extend([end.lat, end.lon]);
+            // Collect segment data for the table panel (indexed to preserve order)
+            if (tableEntry) {
+                tableEntry.segments[segmentIndex] = {
+                    from:     pointLabel(start, segmentIndex),
+                    to:       pointLabel(end,   segmentIndex + 1),
+                    distance,
+                    duration
+                };
+            }
 
-                    const duration = routeData.features[0].properties.segments[0].duration;
-                    const distance = routeData.features[0].properties.segments[0].distance;
+            // Start marker (first segment only)
+            if (isFirstSegment) {
+                const startMarker = L.marker([start.lat, start.lon], { icon: startIcon }).addTo(map);
+                dynamicLayers.push(startMarker);
+                let startPopupText = start.text || `Start: ${start.displayName}`;
 
-                    // Collect segment data for the table panel (indexed to preserve order)
-                    if (tableEntry) {
-                        tableEntry.segments[segmentIndex] = {
-                            from:     pointLabel(start, segmentIndex),
-                            to:       pointLabel(end,   segmentIndex + 1),
-                            distance,
-                            duration
-                        };
-                    }
+                if (multiRoute) {
+                    const distKm   = (routeDistance / 1000).toFixed(2);
+                    const mins     = Math.round(routeDuration / 60);
+                    const timeText = `${Math.floor(mins / 60)} hr ${mins % 60} min`;
+                    startPopupText += `
+                        <br><hr>
+                        <strong>Total distance:</strong> ${distKm} km<br>
+                        <strong>Total travel time:</strong> ${timeText}
+                    `;
+                }
 
-                    // Start marker (first segment only)
-                    if (isFirstSegment) {
-                        const startMarker = L.marker([start.lat, start.lon], { icon: startIcon }).addTo(map);
-                        let startPopupText = start.text || `Start: ${start.displayName}`;
+                startMarker.bindPopup(startPopupText);
+                startMarker.on('mouseover', function () { this.openPopup(); });
+                startMarker.on('mouseout',  function () { this.closePopup(); });
+            }
 
-                        if (multiRoute) {
-                            const distKm   = (routeDistance / 1000).toFixed(2);
-                            const mins     = Math.round(routeDuration / 60);
-                            const timeText = `${Math.floor(mins / 60)} hr ${mins % 60} min`;
-                            startPopupText += `
-                                <br><hr>
-                                <strong>Total distance:</strong> ${distKm} km<br>
-                                <strong>Total travel time:</strong> ${timeText}
-                            `;
-                        }
+            // Accumulate totals for the single-route overlay
+            totalDistance += distance;
+            totalDuration += duration;
 
-                        startMarker.bindPopup(startPopupText);
-                        startMarker.on('mouseover', function () { this.openPopup(); });
-                        startMarker.on('mouseout',  function () { this.closePopup(); });
-                    }
+            // End / waypoint marker
+            let endPopupText = end.text || `Waypoint: ${end.displayName}`;
+            if (section) {
+                const distKm = (distance / 1000).toFixed(2);
+                endPopupText += `
+                    <br><hr>
+                    <strong>Segment distance:</strong> ${distKm} km<br>
+                    <strong>Segment time:</strong> ${fmtDuration(duration)}
+                `;
+            }
 
-                    // Accumulate totals for the single-route overlay
-                    totalDistance += distance;
-                    totalDuration += duration;
+            const endMarker = L.marker([end.lat, end.lon], { icon: endIcon }).addTo(map);
+            dynamicLayers.push(endMarker);
+            endMarker.bindPopup(endPopupText);
+            endMarker.on('mouseover', function () { this.openPopup(); });
+            endMarker.on('mouseout',  function () { this.closePopup(); });
 
-                    // End / waypoint marker
-                    let endPopupText = end.text || `Waypoint: ${end.displayName}`;
-                    if (section) {
-                        const distKm = (distance / 1000).toFixed(2);
-                        endPopupText += `
-                            <br><hr>
-                            <strong>Segment distance:</strong> ${distKm} km<br>
-                            <strong>Segment time:</strong> ${fmtDuration(duration)}
-                        `;
-                    }
+            // Single-route overlay: update on the last segment
+            if (!multiRoute && isLastSegment) {
+                const totalMins    = Math.round(totalDuration / 60);
+                const totalHours   = Math.floor(totalMins / 60);
+                const totalMinutes = (totalMins % 60).toString().padStart(2, '0');
+                const timeText     = `${totalHours} hr ${totalMinutes} min`;
+                const distKm       = (totalDistance / 1000).toFixed(2);
 
-                    const endMarker = L.marker([end.lat, end.lon], { icon: endIcon }).addTo(map);
-                    endMarker.bindPopup(endPopupText);
-                    endMarker.on('mouseover', function () { this.openPopup(); });
-                    endMarker.on('mouseout',  function () { this.closePopup(); });
+                const now         = new Date();
+                const arrival     = new Date(now.getTime() + totalDuration * 1000);
+                const arrivalText = `${arrival.getHours().toString().padStart(2,'0')}:${arrival.getMinutes().toString().padStart(2,'0')}`;
 
-                    // Single-route overlay: update on the last segment
-                    if (!multiRoute && isLastSegment) {
-                        const totalMins    = Math.round(totalDuration / 60);
-                        const totalHours   = Math.floor(totalMins / 60);
-                        const totalMinutes = (totalMins % 60).toString().padStart(2, '0');
-                        const timeText     = `${totalHours} hr ${totalMinutes} min`;
-                        const distKm       = (totalDistance / 1000).toFixed(2);
+                const container = document.getElementById("duration-container");
+                if (container) {
+                    container.innerHTML = `
+                        <div><strong>Total distance:</strong> ${distKm} km</div>
+                        <div><strong>Travel time:</strong> ${timeText}</div>
+                        <div><strong>Estimated arrival:</strong> ${arrivalText}</div>
+                    `;
+                    container.style.display = "block";
+                }
+            }
 
-                        const now         = new Date();
-                        const arrival     = new Date(now.getTime() + totalDuration * 1000);
-                        const arrivalText = `${arrival.getHours().toString().padStart(2,'0')}:${arrival.getMinutes().toString().padStart(2,'0')}`;
+            return { distance, duration, coords: routeCoords };
+        };
 
-                        const container = document.getElementById("duration-container");
-                        if (container) {
-                            container.innerHTML = `
-                                <div><strong>Total distance:</strong> ${distKm} km</div>
-                                <div><strong>Travel time:</strong> ${timeText}</div>
-                                <div><strong>Estimated arrival:</strong> ${arrivalText}</div>
-                            `;
-                            container.style.display = "block";
-                        }
-                    }
+        if (cachedLeg) {
+            return Promise.resolve(draw(cachedLeg.coords, cachedLeg.distance, cachedLeg.duration));
+        }
 
-                    resolve({ distance, duration });
-                })
-                .catch(error => {
-                    console.error("Error fetching route:", error);
-                    reject(error);
-                });
-        });
+        const routeUrl = `https://api.openrouteservice.org/v2/directions/${profile}?api_key=${openRouteServiceApiKey}&start=${start.lon},${start.lat}&end=${end.lon},${end.lat}`;
+
+        return fetch(routeUrl)
+            .then(r => {
+                if (!r.ok) throwFetchError('OpenRouteService (routing)', r, 'HTTP error');
+                return r.json();
+            })
+            .then(routeData => {
+                const routeCoords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                const duration    = routeData.features[0].properties.segments[0].duration;
+                const distance    = routeData.features[0].properties.segments[0].distance;
+                return draw(routeCoords, distance, duration);
+            })
+            .catch(error => {
+                console.error("Error fetching route:", error);
+                throw error;
+            });
     }
 
     /**
@@ -1006,13 +1357,13 @@
      * from the first to the last coordinate (ignoring intermediate waypoints).
      * Used to pre-populate start marker popups in multi-route mode.
      *
-     * @param {Object[]} coordinates - Array of coordinate objects with lat/lon
-     * @param {string} profile       - OpenRouteService routing profile
+     * @param {Object[]} route  - Array of coordinate objects with lat/lon
+     * @param {string} profile  - OpenRouteService routing profile
      * @returns {Promise<{totalDuration: number, totalDistance: number}>}
      */
-    function calculateTotalRouteData(coordinates, profile) {
-        const first = coordinates[0];
-        const last  = coordinates[coordinates.length - 1];
+    function calculateTotalRouteData(route, profile) {
+        const first = route[0];
+        const last  = route[route.length - 1];
         const url   = `https://api.openrouteservice.org/v2/directions/${profile}?api_key=${openRouteServiceApiKey}&start=${first.lon},${first.lat}&end=${last.lon},${last.lat}`;
 
         return fetch(url)
