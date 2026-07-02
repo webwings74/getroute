@@ -235,6 +235,33 @@
     let totalDuration     = 0;
     let bounds            = L.latLngBounds(); // Bounding box of all rendered elements
     let notFoundLocations = [];               // Location names that could not be geocoded
+    let apiErrors         = [];               // { provider, status } entries for rate-limit/quota errors
+    let routeErrors       = [];               // { routeIndex, message } entries for other route failures
+
+    // HTTP statuses that typically indicate a provider rate limit or exhausted quota
+    const API_LIMIT_STATUSES = new Set([429, 403]);
+
+    /**
+     * Builds and throws an Error for a failed fetch response. If the response status
+     * indicates a rate limit or quota problem, the failure is also recorded in
+     * apiErrors (deduplicated) and the thrown error is flagged with isApiLimit so
+     * callers can avoid double-reporting it as a generic route failure.
+     *
+     * @param {string} provider   - Human-readable provider name, e.g. "OpenRouteService (routing)"
+     * @param {Response} response - The fetch Response object
+     * @param {string} label      - Prefix used for the generic error message
+     */
+    function throwFetchError(provider, response, label) {
+        if (API_LIMIT_STATUSES.has(response.status)) {
+            if (!apiErrors.some(e => e.provider === provider && e.status === response.status)) {
+                apiErrors.push({ provider, status: response.status });
+            }
+            const err = new Error(`${provider} returned HTTP ${response.status}`);
+            err.isApiLimit = true;
+            throw err;
+        }
+        throw new Error(`${label}: ${response.status}`);
+    }
 
     /**
      * tableData holds the collected segment data for the side panel.
@@ -546,6 +573,8 @@
     // ── Main entry point ──────────────────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", function () {
         notFoundLocations = [];
+        apiErrors         = [];
+        routeErrors       = [];
         tableData         = [];
 
         const routes        = getRoutesFromQuery();
@@ -590,6 +619,24 @@
 
         // After all rendering: report errors, fit map, build table panel if requested
         Promise.all(promises).then(() => {
+            // Provider rate-limit / quota errors take priority — they explain why
+            // routes or locations may be missing, and name the responsible provider.
+            if (apiErrors.length > 0) {
+                const list = apiErrors.map(e => {
+                    const reason = e.status === 429
+                        ? 'rate limit exceeded (too many requests per minute)'
+                        : 'access denied — invalid API key or daily quota exceeded';
+                    return `• ${e.provider}: HTTP ${e.status} — ${reason}`;
+                }).join('\n');
+                alert(
+                    `One or more map data providers rejected a request, most likely because a usage limit was reached:\n\n${list}\n\n` +
+                    `As a result, some routes or locations may be missing from the map. Try again later, or check the API key/quota for the provider(s) listed above.`
+                );
+            } else if (routeErrors.length > 0) {
+                const list = routeErrors.map(e => `• Route ${e.routeIndex + 1}: ${e.message}`).join('\n');
+                alert(`The following route(s) could not be calculated:\n\n${list}`);
+            }
+
             if (notFoundLocations.length > 0) {
                 const list = notFoundLocations.map(loc => `• ${loc}`).join('\n');
                 alert(`The following location(s) could not be found:\n\n${list}`);
@@ -679,7 +726,7 @@
             const fetches = locations.map(location => {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location.point)}`;
                 return fetch(url).then(r => {
-                    if (!r.ok) throw new Error(`Error fetching location: ${r.status}`);
+                    if (!r.ok) throwFetchError('Nominatim (geocoding)', r, 'Error fetching location');
                     return r.json();
                 });
             });
@@ -738,7 +785,7 @@
         const fetches = route.map(point => {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(point.point)}`;
             return fetch(url).then(r => {
-                if (!r.ok) throw new Error(`Error fetching location: ${r.status}`);
+                if (!r.ok) throwFetchError('Nominatim (geocoding)', r, 'Error fetching location');
                 return r.json();
             });
         });
@@ -765,7 +812,9 @@
                 });
 
                 if (localNotFound.length > 0) {
-                    throw new Error("Some locations could not be found: " + localNotFound.join(", "));
+                    const err = new Error("Some locations could not be found: " + localNotFound.join(", "));
+                    err.isLocationNotFound = true;
+                    throw err;
                 }
 
                 // Prepare a tableData slot for this route (filled per segment below)
@@ -802,7 +851,12 @@
                         return Promise.all(segmentPromises);
                     });
             })
-            .catch(error => console.error("Error processing route:", error));
+            .catch(error => {
+                console.error("Error processing route:", error);
+                if (!error.isApiLimit && !error.isLocationNotFound) {
+                    routeErrors.push({ routeIndex, message: error.message });
+                }
+            });
     }
 
     /**
@@ -850,7 +904,7 @@
 
             fetch(routeUrl)
                 .then(r => {
-                    if (!r.ok) throw new Error(`HTTP error! Status: ${r.status}`);
+                    if (!r.ok) throwFetchError('OpenRouteService (routing)', r, 'HTTP error');
                     return r.json();
                 })
                 .then(routeData => {
@@ -963,7 +1017,7 @@
 
         return fetch(url)
             .then(r => {
-                if (!r.ok) throw new Error(`Error fetching total route data: ${r.status}`);
+                if (!r.ok) throwFetchError('OpenRouteService (routing)', r, 'Error fetching total route data');
                 return r.json();
             })
             .then(data => {
