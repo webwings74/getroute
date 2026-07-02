@@ -282,12 +282,13 @@ https://yourdomain.com/maprouter.php?route=[{"point":"Amsterdam"},{"point":"Utre
 | 2026-07-02 | `maprouter.php`: `?table` panel now supports live editing — reorder route points, move a point to a standalone marker and back, with the URL kept in sync and a "Copy shareable URL" button |
 | 2026-07-02 | `mapbuilder.php`: added reorder (▲/▼) and move (📍 / "move into route") controls so stops and location markers can be rearranged before generating the URL |
 | 2026-07-02 | README: clarified that `maprouter-builder.py` still works correctly, but `mapbuilder.php` is recommended for ease of use |
+| 2026-07-02 | Changed licence from MIT to PolyForm Noncommercial 1.0.0 — free for noncommercial use, commercial use requires separate permission |
 
 ---
 
 ## Licence
 
-This project is licensed under the MIT Licence.
+This project is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0). Free to use, modify, and share for any noncommercial purpose; commercial use requires separate permission from the licensor.
 
 Copyright © Richard, Webwings 2025
 
